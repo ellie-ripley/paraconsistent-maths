@@ -355,6 +355,24 @@ lemma equals_sub: "x = y ⟹ P x → P y"
   qed
 #+end_src
 
+*** lemma eqsub_rule: "x = y ⟹ P x ⟹ P y"
+#+begin_src isabelle
+lemma eqsub_rule: "x = y ⟹ P x ⟹ P y"
+proof -
+  assume xy:"x = y" and px:"P x"
+  from equals_sub_impl and xy have "P x \<rightarrow> P y" ..
+  from this and px show ?thesis ..
+qed
+#+end_src
+*** lemma eqsub_rule': "y = x ⟹ P x ⟹ P y"
+#+begin_src isabelle
+lemma eqsub_rule': "y = x ⟹ P x ⟹ P y"
+proof -
+  assume yx:"y = x" and px:"P x"
+  from eq_sym_bientl and yx have "x = y" ..
+  from this and px show ?thesis by (rule eqsub_rule)
+qed
+#+end_src
 *** lemma impl_equals_left: "P x ⇛ x = y ⇛ P y"
 #+begin_src isabelle
 lemma impl_equals_left: "P x ⇛ x = y ⇛ P y"
@@ -380,6 +398,15 @@ lemma equals_left_rule': "P x ⟹ y = x ⇛ P y"
     from px have "x = y ⇛ P y" by (rule equals_left_rule)
     then show ?thesis by (rule bisub_rule[OF eq_sym_bientl])
   qed
+#+end_src
+*** lemma eqsub_context: "x = y ⇛ t x = t y"
+#+begin_src isabelle
+lemma eqsub_context: "x = y ⇛ t x = t y"
+proof -
+  from equals_sub_impl and entl_impl have "x = y ⇛ t x = t x ⇛ t x = t y" ..
+  from implC and this have "t x = t x ⇛ x = y ⇛ t x = t y" ..
+  from this and refl show ?thesis ..
+qed
 #+end_src
 *** lemma implB': "(A ⇛ B) ⇛ (B ⇛ C) ⇛ A ⇛ C"
 #+begin_src isabelle
@@ -1866,6 +1893,94 @@ lemma eq_trans: "x = y ⊗ y = z ⇛ x = z"
     from conj_import and this show ?thesis ..
   qed
 #+end_src
+** Lemmas for tactics
+- Just one big blob atm; proves things used just for defining tactics
+
+#+begin_src isabelle
+lemmas o_equivI = equal_intr_rule[
+    where phi=‹PROP (Is_theorem p)› and psi=‹PROP (Is_theorem q)› for p q]
+
+lemma bientl_equiv_in_context:
+  assumes ab: ‹A ↔ B›
+  shows ‹(Is_theorem (p A) ≡ Is_theorem (p B))›
+proof -
+  have ‹p A ⟹ p B›
+    by(rule bisub_rule[OF ab])
+  moreover have ‹p B ⟹ p A›
+    by(rule bisub_rule'[OF ab])
+  ultimately show ‹PROP ?thesis›
+    by (rule o_equivI)
+qed
+
+
+lemmas conj_assoc_in_context = bisub_rule[OF conj_biass]
+lemmas conj_assoc_in_context2 = bisub_rule'[OF conj_biass]
+lemmas conj_comm_in_context = bisub_rule[OF conj_bicomm]
+
+lemma conj_left_comm_in_context:
+  ‹p (A ⊗ (B ⊗ C)) ⟹ p (B ⊗ (A ⊗ C))›
+  apply (rule bisub_rule[OF conj_biass', of _ B A C])
+  apply (rule conj_comm_in_context[of _ A B])
+  apply (rule conj_assoc_in_context)
+  apply assumption
+  done
+
+
+lemmas disj_assoc_in_context = bisub_rule[OF disj_biass]
+lemmas disj_assoc_in_context2 = bisub_rule'[OF disj_biass]
+lemmas disj_comm_in_context = bisub_rule[OF disj_bicomm]
+
+lemma disj_left_comm_in_context:
+  ‹p (A ∨ (B ∨ C)) ⟹ p (B ∨ (A ∨ C))›
+  apply (rule bisub_rule[OF bientl_sym_rule[OF disj_biass], of _ B A C])
+  apply (rule disj_comm_in_context[of _ A B])
+  apply (rule disj_assoc_in_context)
+  apply assumption
+  done
+
+lemma strip_dn_in_context:
+  ‹p A ⟹ p (¬¬A)›
+  apply (rule bisub_rule[OF dn_bi, of _ A])
+  apply assumption
+  done
+
+lemma strip_dn_in_context2:
+  ‹p (¬¬A) ⟹ p A›
+  apply (rule bisub_rule'[OF dn_bi, of _ A])
+  apply assumption
+  done
+
+lemma conj_left_comm:
+  ‹(A ⊗ (B ⊗ C)) ↔ (B ⊗ (A ⊗ C))›
+  apply (rule bisub_rule[OF conj_biass', of _ B A C])
+  apply (rule bisub_rule[OF conj_bicomm, of _ A B])
+  apply (rule bisub_rule[OF conj_biass, of _ A B C])
+  apply (rule bientlI)
+  done
+
+lemmas disj_biass' = bientl_sym_rule[OF disj_biass]
+
+lemma disj_left_comm:
+  ‹(A ∨ (B ∨ C)) ↔ (B ∨ (A ∨ C))›
+  apply (rule bisub_rule[OF disj_biass', of _ B A C])
+  apply (rule bisub_rule[OF disj_bicomm, of _ A B])
+  apply (rule bisub_rule[OF disj_biass, of _ A B])
+  apply (rule bientlI)
+  done
+
+lemmas conj_assoc_in_context3 = bientl_equiv_in_context[OF conj_biass]
+lemmas conj_comm_in_context3 = bientl_equiv_in_context[OF conj_bicomm]
+lemmas conj_left_comm_in_context3 = bientl_equiv_in_context[OF conj_left_comm]
+
+lemmas disj_assoc_in_context3 = bientl_equiv_in_context[OF disj_biass]
+lemmas disj_comm_in_context3 = bientl_equiv_in_context[OF disj_bicomm]
+lemmas disj_left_comm_in_context3 = bientl_equiv_in_context[OF disj_left_comm]
+
+lemmas bientl_comm_in_context3 = bientl_equiv_in_context[OF bientl_comm_bientl]
+lemmas dnbi_in_context3 = bientl_equiv_in_context[OF bientl_sym_rule[OF bientl_sym_rule[OF dn_bi]]]
+
+#+end_src
+
 * Conclusion
 ** Isabelle
 #+begin_src isabelle
