@@ -268,6 +268,13 @@ lemma equals_left_rule: "P x ⟹ x = y ⇛ P y"
     from impl_equals_left and px show ?thesis ..
   qed
 
+lemma equals_left_rule': "P x ⟹ y = x ⇛ P y"
+  proof -
+    assume px:"P x"
+    from px have "x = y ⇛ P y" by (rule equals_left_rule)
+    then show ?thesis by (rule bisub_rule[OF eq_sym_bientl])
+  qed
+
 lemma implB': "(A ⇛ B) ⇛ (B ⇛ C) ⇛ A ⇛ C"
   proof -
     from implC and implB show "(A ⇛ B) ⇛ (B ⇛ C) ⇛ A ⇛ C" ..
@@ -1147,6 +1154,34 @@ lemma conj_in_under_disjr: "(A ∨ B) ⊗ (A ∨ C) ⇛ A ∨ (B ⊗ C)"
       "A ∨ B ⇛ A ∨ C ⇛ A ∨ (B ⊗ C)" ..
     from conj_import and this show ?thesis ..
   qed
+
+lemma double_dist: "(A ∨ B) ⊗ (C ∨ D) ⇛ A ∨ C ∨ (B ⊗ D)"
+proof -
+  from dist_cd_ltr have
+    "(A ∨ B) ⊗ (C ∨ D) ⇛ (C ⊗ (A ∨ B)) ∨ ((A ∨ B) ⊗ D)" by(rule bisub_rule[OF conj_bicomm])
+  then have
+    step1:"(A ∨ B) ⊗ (C ∨ D) ⇛ (C ⊗ (A ∨ B)) ∨ (D ⊗ (A ∨ B))" by(rule bisub_rule[OF conj_bicomm])
+
+  from impl_cel and impl_disj_inl have
+    "C ⊗ (A ∨ B) ⇛ C ∨ (B ⊗ D)" ..
+  from this and impl_disj_inr have
+    step2:"C ⊗ (A ∨ B) ⇛ A ∨ C ∨ (B ⊗ D)" ..
+
+  from impl_cer and impl_disj_inl have
+    horn1:"D ⊗ A ⇛ A ∨ C ∨ (B ⊗ D)" ..
+  from impl_disj_inr and impl_disj_inr have
+    "D ⊗ B ⇛ A ∨ C ∨ (D ⊗ B)" ..
+  then have
+    "D ⊗ B ⇛ A ∨ C ∨ (B ⊗ D)" by(rule bisub_rule[OF conj_bicomm])
+  from horn1 and this have
+    "(D ⊗ A) ∨ (D ⊗ B) ⇛ A ∨ C ∨ (B ⊗ D)" by (rule disj_left_rule)
+  from dist_cd_ltr and this have
+    step3:"D ⊗ (A ∨ B) ⇛ A ∨ C ∨ (B ⊗ D)" ..
+
+  from step2 and step3 have
+    "(C ⊗ (A ∨ B)) ∨ (D ⊗ (A ∨ B)) ⇛ A ∨ C ∨ (B ⊗ D)" by(rule disj_left_rule)
+  from step1 and this show ?thesis ..
+qed
 
 lemma cer_under_disjl: "(A ⊗ B) ∨ C ⇛ B ∨ C"
   proof -

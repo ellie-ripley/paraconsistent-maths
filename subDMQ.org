@@ -5,11 +5,11 @@
 - Part of an attempt to reconstruct as much of Zach Weber, _Paradoxes and Inconsistent Mathematics_, CUP 2021 as possible using Isabelle.
 - This file aims at the logic subDMQ, which is original (afaik) to this reconstruction.
 - subDMQ is a very close relative of the book's logic subDLQ. Differences:
-  - removes bad distribution axiom
+  - removes bad distribution axioms
   - strengthens two rules to impl-axiom form
   - adds =-refl axiom and efq axiom
 - recommended way to view this: in org-mode, view headings down to level 3. That'll show you all the lemma statements but hide the proofs. Gives a nice overview.
-- run org-bable-tangle to output a .thy file for Isabelle to check
+- run org-babel-tangle to output a .thy file for Isabelle to check
 *** Isabelle
 #+begin_src isabelle
 (* Title: subDMQ.thy
@@ -67,12 +67,12 @@ abbreviation noteq :: "i ⇒ i ⇒ o" (infix "≠" 70)
 ** Text
 - Mostly from p131 of Weber 2021.
 - Differences from Weber:
-  - bad distribution form removed
-  - axiom refl: provable in the set theory but not in subDLQ; not distinctly set-theoretic
-  - axiom efq_entl: provable in the set theory but not in subDLQ; not distinctly set-theoretic and needed (or its implication strength, anyway) for some results of Ch.4
-  - axiom equals_sub_impl: implication strength of a subDLQ rule; needed for some results of Ch.4, and for deduction theorem
-  - axiom bisub_impl: implication strength of a subDLQ rule; needed for deduction theorem (and some results of ch5?)
-- There may also be some differences with the quantifiers, owing to Isabelle's way of handling variables and binding. I don't know that this ramifies, and it all seems to work fine, but I'm not 100λ confident that this *doesn't* ramify.
+  - distribution removed
+  - axiom refl: provable in the set theory but (probably) not in subDLQ; not distinctly set-theoretic
+  - axiom efq_entl: provable in the set theory but not stateable in subDLQ; not distinctly set-theoretic and needed (or its implication strength, anyway) for some results of Ch.4
+  - axiom equals_sub_impl: implication strength of a subDLQ rule; needed for some results of Ch.4, and presumably for deduction theorem
+  - axiom bisub_impl: implication strength of a subDLQ rule; presumably needed for deduction theorem (and some results of ch5?)
+- There may also be some differences with the quantifiers, owing to Isabelle's way of handling variables and binding. I don't know that this ramifies, and it all seems to work fine, but I'm not 100% confident that this *doesn't* ramify.
 ** Isabelle
 #+begin_src isabelle
 axiomatization
@@ -370,6 +370,15 @@ lemma equals_left_rule: "P x ⟹ x = y ⇛ P y"
   proof -
     assume px:"P x"
     from impl_equals_left and px show ?thesis ..
+  qed
+#+end_src
+*** lemma equals_left_rule': "P x ⟹ y = x ⇛ P y"
+#+begin_src isabelle
+lemma equals_left_rule': "P x ⟹ y = x ⇛ P y"
+  proof -
+    assume px:"P x"
+    from px have "x = y ⇛ P y" by (rule equals_left_rule)
+    then show ?thesis by (rule bisub_rule[OF eq_sym_bientl])
   qed
 #+end_src
 *** lemma implB': "(A ⇛ B) ⇛ (B ⇛ C) ⇛ A ⇛ C"
@@ -914,6 +923,7 @@ qed
 ** Conjunction rearrangements
 *** comments
 - the lemma names use L and R as left and right delimiters to indicate association; it's ugly, but symbols all seem to be reserved
+- this should all be obviated by the subdmq_normalize tactic
 *** lemma rearrange_aLbcRde_LaebcRd: "A ⊗ (B ⊗ C) ⊗ D ⊗ E ↔ (A ⊗ E ⊗ B ⊗ C) ⊗ D"
 #+begin_src isabelle
 lemma rearrange_aLbcRde_LaebcRd: "A ⊗ (B ⊗ C) ⊗ D ⊗ E ↔ (A ⊗ E ⊗ B ⊗ C) ⊗ D"
@@ -960,7 +970,7 @@ lemma rearrange_abcd_LLacRdRb: "A ⊗ B ⊗ C ⊗ D ↔ ((A ⊗ C) ⊗ D) ⊗ B"
 ** Linking chains of implications
 *** comments
 - here's the naming scheme: impl_link_ijk takes two chains of implications, the first with at least i antecedents and the second with at least j antecedents. The consequent of the second one must occur at the kth place in the first. (always k leq i). The result then replaces that kth place with the j antecedents of the second.
-- probably some automation possible here?
+- probably some tactic help possible here?
 *** lemma impl_link_212: "A ⇛ B ⇛ C ⟹ D ⇛ B ⟹ A ⇛ D ⇛ C"
 #+begin_src isabelle
 lemma impl_link_212: "A ⇛ B ⇛ C ⟹ D ⇛ B ⟹ A ⇛ D ⇛ C"
@@ -1400,7 +1410,7 @@ lemma all_entl_entl_bientl_ltr: "∀(λx. P x → Q x) ⊗ ∀(λy. Q y → P y)
 #+end_src
 ** Some more handy stuff
 *** comments
-- this late because these depend on some of what's before
+- these occur this late in the file because they depend on some of what's before
 - note that Bocardo can make do with implication only, while Baroco requires entailment, because Baroco needs contraposition!
 
 *** lemma bientl_contra_impl: "(A ↔ B) ⇛ (¬B ↔ ¬A)"
@@ -1446,6 +1456,36 @@ lemma conj_in_under_disjr: "(A ∨ B) ⊗ (A ∨ C) ⇛ A ∨ (B ⊗ C)"
       "A ∨ B ⇛ A ∨ C ⇛ A ∨ (B ⊗ C)" ..
     from conj_import and this show ?thesis ..
   qed
+#+end_src
+*** lemma double_dist: "(A ∨ B) ⊗ (C ∨ D) ⇛ A ∨ C ∨ (B ⊗ D)"
+#+begin_src isabelle
+lemma double_dist: "(A ∨ B) ⊗ (C ∨ D) ⇛ A ∨ C ∨ (B ⊗ D)"
+proof -
+  from dist_cd_ltr have
+    "(A ∨ B) ⊗ (C ∨ D) ⇛ (C ⊗ (A ∨ B)) ∨ ((A ∨ B) ⊗ D)" by(rule bisub_rule[OF conj_bicomm])
+  then have
+    step1:"(A ∨ B) ⊗ (C ∨ D) ⇛ (C ⊗ (A ∨ B)) ∨ (D ⊗ (A ∨ B))" by(rule bisub_rule[OF conj_bicomm])
+
+  from impl_cel and impl_disj_inl have
+    "C ⊗ (A ∨ B) ⇛ C ∨ (B ⊗ D)" ..
+  from this and impl_disj_inr have
+    step2:"C ⊗ (A ∨ B) ⇛ A ∨ C ∨ (B ⊗ D)" ..
+
+  from impl_cer and impl_disj_inl have
+    horn1:"D ⊗ A ⇛ A ∨ C ∨ (B ⊗ D)" ..
+  from impl_disj_inr and impl_disj_inr have
+    "D ⊗ B ⇛ A ∨ C ∨ (D ⊗ B)" ..
+  then have
+    "D ⊗ B ⇛ A ∨ C ∨ (B ⊗ D)" by(rule bisub_rule[OF conj_bicomm])
+  from horn1 and this have
+    "(D ⊗ A) ∨ (D ⊗ B) ⇛ A ∨ C ∨ (B ⊗ D)" by (rule disj_left_rule)
+  from dist_cd_ltr and this have
+    step3:"D ⊗ (A ∨ B) ⇛ A ∨ C ∨ (B ⊗ D)" ..
+
+  from step2 and step3 have
+    "(C ⊗ (A ∨ B)) ∨ (D ⊗ (A ∨ B)) ⇛ A ∨ C ∨ (B ⊗ D)" by(rule disj_left_rule)
+  from step1 and this show ?thesis ..
+qed
 #+end_src
 *** lemma cer_under_disjl: "(A ⊗ B) ∨ C ⇛ B ∨ C"
 #+begin_src isabelle
@@ -1826,43 +1866,6 @@ lemma eq_trans: "x = y ⊗ y = z ⇛ x = z"
     from conj_import and this show ?thesis ..
   qed
 #+end_src
-** Bad distribution
-- Email from Libor 2025-3-31: notes that the bad distribution is still derivable; dropping the axiom didn't fix it!
-- Q: what to do? Drop one of the De Morgan principles? But what about double negation and contraposition; are those alone enough to force the De Morgans?
-*** notlemma bad_dist: "A ∨ (B ⊗ C) ↔ (A ∨ B) ⊗ (A ∨ C)"
-- uses dist_cd_bi, the old entailment-strength distribution axiom
-- not exported because source block not labelled isabelle, so doesn't interfere
-#+begin_src
-lemma bad_dist: "A ∨ (B ⊗ C) ↔ (A ∨ B) ⊗ (A ∨ C)"
-  proof -
-    from dist_cd_bi have
-      "(¬A ⊗ ¬B) ∨ (¬A ⊗ ¬C) ↔ ¬A ⊗ (¬B ∨ ¬C)"
-      by(rule bientl_sym_rule)
-    from dm_cnnd_bi and this have
-      "¬(A ∨ B) ∨ (¬A ⊗ ¬C) ↔ ¬A ⊗ (¬B ∨ ¬C)"
-      by(rule bisub_rule)
-    from dm_cnnd_bi and this have
-      "¬(A ∨ B) ∨ ¬(A ∨ C) ↔ ¬A ⊗ (¬B ∨ ¬C)"
-      by(rule bisub_rule)
-    from dm_dnnc_bi and this have
-      "¬((A ∨ B) ⊗ (A ∨ C)) ↔ ¬A ⊗ (¬B ∨ ¬C)"
-      by(rule bisub_rule)
-    from dm_dnnc_bi and this have
-      "¬((A ∨ B) ⊗ (A ∨ C)) ↔ ¬A ⊗ ¬(B ⊗ C)"
-      by(rule bisub_rule)
-    from dm_cnnd_bi and this have
-      "¬((A ∨ B) ⊗ (A ∨ C)) ↔ ¬(A ∨ (B ⊗ C))"
-      by(rule bisub_rule)
-    from bientl_contra_impl and this have
-      "¬¬(A ∨ (B ⊗ C)) ↔ ¬¬((A ∨ B) ⊗ (A ∨ C))" ..
-    from dn_bi and this have
-      "(A ∨ (B ⊗ C)) ↔ ¬¬((A ∨ B) ⊗ (A ∨ C))"
-      by(rule bisub_rule)
-    from dn_bi and this show ?thesis
-      by(rule bisub_rule)
-qed
-#+end_src
-
 * Conclusion
 ** Isabelle
 #+begin_src isabelle
