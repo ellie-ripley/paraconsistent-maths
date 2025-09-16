@@ -1,0 +1,537 @@
+(* Title: subDMQ-arithmetic.thy
+   Author: Ellie Ripley, https://negation.rocks
+*)
+
+
+section \<open>Naive set theory in subDMQ\<close>
+
+theory "subDMQ-arithmetic"
+  imports subDMQ "subDMQ-tactics"
+begin
+
+axiomatization
+      plus  :: "i ⇒ i ⇒ i"   (infixr "+" 80)
+  and times :: "i ⇒ i ⇒ i"   (infixr "×" 90)
+  and zero  :: "i" ("0")
+  and succ  :: "i ⇒ i" ("S _" [95] 95)
+
+axiomatization
+  where succ_inj: "S x = S y ⇛ x = y"
+    and zero_succ_impl_kaboom: "0 = S x ⇛ ⊥"
+    and plus_zero: "x + 0 = x"
+    and plus_succ: "x + S y = S (x + y)"
+    and times_zero: "x × 0 = 0"
+    and times_succ: "x × S y = (x × y) + x"
+    and induction: "P 0 ⊗ ∀(λx. P x ⇛ P (S x)) ⇛ ∀(λ y. P y)"
+
+definition leq :: "i ⇒ i ⇒ o" (infix "≤" 70)
+  where "x ≤ y ≡ ∃(λ z. x + z = y)"
+
+definition sle :: "i ⇒ i ⇒ o" (infix "<" 70)
+  where "x < y ≡ ∃(λ z. x + S z = y)"
+
+lemma induction_rule: "P 0 ⟹ ∀(λ x. P x ⇛ P (S x)) ⟹ ∀(λ y. P y)"
+proof -
+  assume zerocase:"P 0" and inductive:"∀(λ x . P x ⇛ P (S x))"
+  from zerocase and inductive have "P 0 ⊗ ∀(λ x . P x ⇛ P (S x))" ..
+  from induction and this show ?thesis ..
+qed
+
+lemma induction_rule_bare: "P 0 ⟹ ∀(λ x. P x ⇛ P (S x)) ⟹ P y"
+proof -
+  assume zerocase:"P 0" and inductive:"∀(λ x. P x ⇛ P (S x))"
+  from zerocase and inductive have "∀(λ y. P y)" by (rule induction_rule)
+  from entl_ui and this show ?thesis ..
+qed
+
+lemma prop_24: "∀(λ x. x = 0 ∨ ∃(λ y. x = S y))"
+proof -
+  have "0 = 0" by (rule refl)
+  from entl_disj_inl and this have zerocase:"0 = 0 ∨ ∃(λ y. 0 = S y)" ..
+
+  { fix z
+    have "S z = S z" by (rule refl)
+    from entl_eg and this have "∃(λ y. S z = S y)" ..
+    from entl_disj_inr and this have "S z = 0 ∨ ∃(λ y. S z = S y)" ..
+    from implK and this have "z = 0 ∨ ∃(λ y. z = S y) ⇛ S z = 0 ∨ ∃(λ y. S z = S y)" ..
+  }
+  have "\<And>z. z = 0 ∨ ∃(λ y. z = S y) ⇛ S z = 0 ∨ ∃(λ y. S z = S y)" by fact
+  then have inductive: "∀(λ z. z = 0 ∨ ∃(λ y. z = S y) ⇛ S z = 0 ∨ ∃(λ y. S z = S y))" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule)
+qed
+
+lemma plus_zero': "0 + x = x"
+proof -
+  { fix z
+    have "0 + z = z ⇛ S(0 + z) = S z" by (rule eqsub_context)
+    from plus_succ and this have "0 + z = z ⇛ 0 + S z = S z" by (rule eqsub_rule')
+  }
+  have "\<And> z. 0 + z = z ⇛ 0 + S z = S z" by fact
+  then have inductive: "∀(λ z. 0 + z = z ⇛ 0 + S z = S z)" ..
+
+  from plus_zero and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma plus_comm_aux: "x + S y = S x + y"
+proof -
+  from plus_zero and plus_succ have "x + S 0 = S x"
+    by (rule eqsub_rule)
+  from plus_zero and this have zerocase: "x + S 0 = S x + 0"
+    by (rule eqsub_rule')
+
+  { fix z
+    have "x + S z = S x + z ⇛ S (x + S z) = S (S x + z)"
+      by(rule eqsub_context)
+    from plus_succ and this have "x + S z = S x + z ⇛ x + S S z = S (S x + z)"
+      by(rule eqsub_rule')
+    from plus_succ and this have "x + S z = S x + z ⇛ x + S S z = S x + S z"
+      by(rule eqsub_rule')
+  }
+  have "\<And>z. x + S z = S x + z ⇛ x + S S z = S x + S z" by fact
+  then have inductive: "∀(λ z. x + S z = S x + z ⇛ x + S S z = S x + S z)" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma plus_comm: "x + y = y + x"
+proof -
+  from plus_zero and plus_zero' have zerocase: "0 + y = y + 0"
+    by(rule eqsub_rule')
+  { fix z
+    have "z + y = y + z ⇛ S (z + y) = S (y + z)"
+      by(rule eqsub_context)
+    from plus_succ and this have "z + y = y + z ⇛ S (z + y) = y + S z"
+      by(rule eqsub_rule')
+    from plus_succ and this have "z + y = y + z ⇛ z + S y = y + S z"
+      by(rule eqsub_rule')
+    from plus_comm_aux and this have "z + y = y + z ⇛ S z + y = y + S z"
+      by(rule eqsub_rule)
+  }
+  have "\<And> z. z + y = y + z ⇛ S z + y = y + S z" by fact
+  then have inductive:"∀(λ z. z + y = y + z ⇛ S z + y = y + S z)" ..
+
+  from zerocase and inductive show ?thesis by(rule induction_rule_bare)
+qed
+
+lemma plus_ass: "x + y + z = (x + y) + z"
+proof -
+  from plus_zero[of y] and plus_zero have "(x + y) + 0 = x + y + 0"
+    by(rule eqsub_rule)
+  from eq_sym_impl and this have zerocase:"x + y + 0 = (x + y) + 0" ..
+
+  { fix z
+    have "x + y + z = (x + y) + z ⇛ S (x + y + z) = S((x + y) + z)"
+      by(rule eqsub_context)
+    then have "x + y + z = (x + y) + z ⇛ x + y + S z = (x + y) + S z"
+      apply -
+      apply (rule eqsub_rule'[OF plus_succ])
+      apply (rule eqsub_rule'[OF plus_succ])
+      apply (rule eqsub_rule'[OF plus_succ])
+      apply assumption
+      done
+  }
+  have "\<And> z. x + y + z = (x + y) + z ⇛ x + y + S z = (x + y) + S z" by fact
+  then have inductive:"∀(λ z. x + y + z = (x + y) + z ⇛ x + y + S z = (x + y) + S z)" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma plus_cancel: "x + z = y + z ⇛ x = y"
+proof -
+  from implI have "x + 0 = y + 0 ⇛ x + 0 = y"
+    by(rule eqsub_rule[OF plus_zero])
+  then have zerocase: "x + 0 = y + 0 ⇛ x = y"
+    by(rule eqsub_rule[OF plus_zero])
+
+  { fix w
+
+    let ?ih = \<open>x + S w = y + S w\<close>
+
+    from plus_succ and implI have "?ih ⇛ S(x + w) = y + S w" by (rule eqsub_rule)
+    from plus_succ and this have "?ih ⇛ S(x + w) = S(y + w)" by (rule eqsub_rule)
+    from this and succ_inj have "?ih ⇛ x + w = y + w" ..
+    from implB and this have "(x + w = y + w ⇛ x = y) ⇛ ?ih ⇛ x = y" ..
+  }
+  have "\<And> w. (x + w = y + w ⇛ x = y) ⇛ x + S w = y + S w ⇛ x = y" by fact
+  then have inductive:"∀(λ w.((x + w = y + w ⇛ x = y) ⇛ x + S w = y + S w ⇛ x = y))" ..
+
+  from zerocase and inductive show ?thesis by(rule induction_rule_bare)
+qed
+
+lemma plus_cancel_zero: "x + n = x ⇛ n = 0"
+proof -
+  from plus_cancel have "n + x = x ⇛ n = 0" by(rule eqsub_rule[OF plus_zero'])
+  then show ?thesis by (rule eqsub_rule[OF plus_comm])
+qed
+
+lemma plus_eq_insert: "x = y ⇛ x + z = y + z"
+proof -
+  show ?thesis by (rule eqsub_context)
+qed
+
+lemma times_zero': "0 × x = 0"
+proof -
+  { fix z
+    from plus_zero and implI have "0 × z = 0 ⇛ 0 × z + 0 = 0 " by(rule eqsub_rule)
+    from times_succ and this have "0 × z = 0 ⇛ 0 × S z = 0" by (rule eqsub_rule')
+  }
+  have "\<And> z. 0 × z = 0 ⇛ 0 × S z = 0" by fact
+  then have inductive:"∀ (λz. 0 × z = 0 ⇛ 0 × S z = 0)" ..
+
+  from times_zero and inductive show ?thesis by(rule induction_rule_bare)
+qed
+
+lemma times_one: "x × S 0 = x"
+proof -
+  from times_zero and times_succ have "x × S 0 = 0 + x" by (rule eqsub_rule)
+  from plus_zero' and this show ?thesis by(rule eqsub_rule)
+qed
+
+lemma times_succ': "S x × y = (x × y) + y"
+proof -
+  from plus_zero and times_zero have "(x × 0) + 0 = 0" by (rule eqsub_rule')
+  from this and times_zero have zerocase:"S x × 0 = (x × 0) + 0" by (rule eqsub_rule')
+
+  { fix y
+    from times_succ have "S x × y = (x × y) + y ⇛ S x × S y = ((x × y) + y) + S x"
+      by(rule equals_left_rule)
+    then have "S x × y = (x × y) + y ⇛ S x × S y = (x × y) + y + S x"
+      by(rule eqsub_rule'[OF plus_ass])
+    then have "S x × y = (x × y) + y ⇛ S x × S y = (x × y) + S y + x"
+      by(rule eqsub_rule[OF plus_comm_aux])
+    then have "S x × y = (x × y) + y ⇛ S x × S y = (x × y) + x + S y"
+      by(rule eqsub_rule[OF plus_comm])
+    then have "S x × y = (x × y) + y ⇛ S x × S y = ((x × y) + x) + S y"
+      by(rule eqsub_rule[OF plus_ass])
+    then have "S x × y = (x × y) + y ⇛ S x × S y = (x × S y) + S y"
+      by(rule eqsub_rule'[OF times_succ])
+  }
+  have "\<And> y. S x × y = (x × y) + y ⇛ S x × S y = (x × S y) + S y" by fact
+  then have inductive: "∀ (λy. S x × y = (x × y) + y ⇛ S x × S y = (x × S y) + S y)" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma times_comm: "x × y = y × x"
+proof -
+
+  from times_zero' have zerocase:"0 × y = y × 0"
+    by(rule eqsub_rule'[OF times_zero])
+
+  { fix x
+    have "x × y = y × x ⇛ (x × y) + y = (y × x) + y"
+      by(rule eqsub_context)
+    then have "x × y = y × x ⇛ S x × y = (y × x) + y"
+      by(rule eqsub_rule'[OF times_succ'])
+    then have "x × y = y × x ⇛ S x × y = y × S x"
+      by(rule eqsub_rule'[OF times_succ])
+  }
+  have "\<And>x . x × y = y × x ⇛ S x × y = y × S x" by fact
+  then have inductive: "∀ (λ x. x × y = y × x ⇛ S x × y = y × S x)" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma times_plus_dist: "x × (y + z) = (x × y) + (x × z)"
+proof -
+  from times_zero' have "0 × (y + z) = 0 + 0"
+    by(rule eqsub_rule'[OF plus_zero])
+  then have "0 × (y + z) = (0 × y) + 0"
+    by(rule eqsub_rule'[OF times_zero'])
+  then have zerocase:"0 × (y + z) = (0 × y) + (0 × z)"
+    by(rule eqsub_rule'[OF times_zero'])
+
+  { fix x
+    have "x × (y + z) = (x × y) + (x × z) ⇛ (x × (y + z)) + y + z = ((x × y) + (x × z)) + y + z"
+      by(rule eqsub_context)
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = ((x × y) + (x × z)) + y + z"
+      by(rule eqsub_rule'[OF times_succ'])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (x × y) + (x × z) + y + z"
+      by(rule eqsub_rule'[OF plus_ass])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (x × y) + (x × z) + z + y"
+      by(rule eqsub_rule[OF plus_comm])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (x × y) + ((x × z) + z) + y"
+      by(rule eqsub_rule[OF plus_ass])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (x × y) + y + ((x × z) + z)"
+      by(rule eqsub_rule[OF plus_comm])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = ((x × y) + y) + ((x × z) + z)"
+      by(rule eqsub_rule[OF plus_ass])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (S x × y) + ((x × z) + z)"
+      by(rule eqsub_rule'[OF times_succ'])
+    then have "x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (S x × y) + (S x × z)"
+      by(rule eqsub_rule'[OF times_succ'])
+  }
+  have "\<And> x. x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (S x × y) + (S x × z)" by fact
+  then have inductive: "∀(λ x.  x × (y + z) = (x × y) + (x × z) ⇛ S x × (y + z) = (S x × y) + (S x × z))" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma times_ass: "x × y × z = (x × y) × z"
+proof -
+  from times_zero have "x × 0 = (x × y) × 0"
+    by(rule eqsub_rule'[OF times_zero])
+  then have zerocase:"x × y × 0 = (x × y) × 0"
+    by(rule eqsub_rule'[OF times_zero])
+
+  { fix z
+    have "x × y × z = (x × y) × z ⇛ (x × y × z) + (x × y) = ((x × y) × z) + (x × y)"
+      by(rule eqsub_context)
+    then have "x × y × z = (x × y) × z ⇛ (x × y × z) + (x × y) = (x × y) × S z"
+      by(rule eqsub_rule'[OF times_succ])
+    then have "x × y × z = (x × y) × z ⇛ x × ((y × z) + y) = (x × y) × S z"
+      by(rule eqsub_rule'[OF times_plus_dist])
+    then have "x × y × z = (x × y) × z ⇛ x × y × S z = (x × y) × S z"
+      by(rule eqsub_rule'[OF times_succ])
+  }
+  have "\<And> z. x × y × z = (x × y) × z ⇛ x × y × S z = (x × y) × S z" by fact
+  then have inductive: "∀(λ z. x × y × z = (x × y) × z ⇛ x × y × S z = (x × y) × S z)" ..
+
+  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+qed
+
+lemma sle_leq: "x < y ⇛ x ≤ y"
+proof -
+  { fix n
+    from implI and impl_eg have "x + S n = y ⇛ ∃(λz . x + z = y)" ..
+  }
+  have "\<And> n . x + S n = y ⇛ ∃(λ z . x + z = y)" by fact
+  then have "∀(λ n . x + S n = y ⇛ ∃(λ z . x + z = y))" ..
+  from all_ante and this show ?thesis
+    unfolding leq_def
+    unfolding sle_def ..
+qed
+
+lemma plus_zero_sub: "x + n = y ⊗ n = 0 ⇛ x = y"
+proof -
+  from plus_zero have "0 = n ⇛ x + n = x" by (rule equals_left_rule)
+  then have step1:"n = 0 ⇛ x + n = x" by (rule bisub_rule[OF eq_sym_bientl])
+
+  from implI have "x + n = x ⇛ x + n = y ⇛ x = y" by(rule equals_left_rule)
+  from step1 and this have "n = 0 ⇛ x + n = y ⇛ x = y" ..
+  from conj_import and this have "n = 0 ⊗ x + n = y ⇛ x = y" ..
+  then show ?thesis
+    by (subdmq_normalize)
+qed
+
+lemma plus_succ_sle_sub: "x + n = y ⊗ ∃(λz. n = S z) ⇛ x < y"
+proof -
+  { fix z
+    from implI and impl_eg have "x + S z = y ⇛ x < y"
+      unfolding sle_def ..
+    then have "S z = n ⇛ x + n = y ⇛ x < y" by (rule equals_left_rule)
+    then have "n = S z ⇛ x + n = y ⇛ x < y" by (rule bisub_rule[OF eq_sym_bientl])
+  }
+  have "\<And> z . n = S z ⇛ x + n = y ⇛ x < y" by fact
+  then have "∀ (λ z. n = S z ⇛ x + n = y ⇛ x < y)" ..
+  from all_ante and this have "∃(λ z . n = S z) ⇛ x + n = y ⇛ x < y" ..
+  from conj_import and this have "∃(λ z . n = S z) ⊗ x + n = y ⇛ x < y" ..
+  then show ?thesis by (rule bisub_rule[OF conj_bicomm])
+qed
+
+lemma leq_eq_or_sle: "x ≤ y ⇛ x = y ∨ x < y"
+proof -
+  { fix n
+    from impl_conj_in and prop_24 have
+      "(x + n = y) ⇛ ∀(λ m. m = 0 ∨ ∃(λ z. m = S z)) ⊗ x + n = y" ..
+    then have step1:"(x + n = y) ⇛ x + n = y ⊗ ∀(λ m. m = 0 ∨ ∃(λ z. m = S z))"
+      by(rule bisub_rule[OF conj_bicomm])
+    from impl_ui have
+      "x + n = y ⊗ ∀(λ m. m = 0 ∨ ∃(λ z. m = S z)) ⇛ x + n = y ⊗ (n = 0 ∨ ∃(λ z. n = S z))"
+      by(rule conj_monotone_right_rule)
+    from step1 and this have "(x + n = y) ⇛ x + n = y ⊗ (n = 0 ∨ ∃(λ z. n = S z))" ..
+    from this and dist_cd_ltr have
+      step1:"(x + n = y) ⇛ (x + n = y ⊗ n = 0) ∨ (x + n = y ⊗ ∃(λ z. n = S z))" ..
+
+    from plus_zero_sub and impl_disj_inl have lefthorn:"x + n = y ⊗ n = 0 ⇛ x = y ∨ x < y" ..
+    from plus_succ_sle_sub and impl_disj_inr have
+      righthorn:"x + n = y ⊗ ∃(λ z . n = S z) ⇛ x = y ∨ x < y" ..
+    from lefthorn and righthorn have
+      "(x + n = y ⊗ n = 0) ∨ (x + n = y ⊗ ∃(λ z. n = S z)) ⇛ x = y ∨ x < y"
+      by (rule disj_left_rule)
+    from step1 and this have "x + n = y ⇛ x = y ∨ x < y" ..
+  }
+  have "\<And> n . x + n = y ⇛ x = y ∨ x < y" by fact
+  then have "∀(λ n . x + n = y ⇛ x = y ∨ x < y)" ..
+  from all_ante and this show ?thesis
+    unfolding leq_def ..
+qed
+
+lemma zero_leq: "0 ≤ x"
+proof -
+  from entl_eg and plus_zero' show ?thesis
+    unfolding leq_def ..
+qed
+
+lemma zero_succ_sle: "0 < S x"
+proof -
+  from entl_eg and plus_zero' show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma sle_zero_impl_kaboom: "x < 0 ⇛ ⊥"
+proof -
+  { fix n
+    from zero_succ_impl_kaboom have "S (x + n) = 0 ⇛ ⊥"
+      by (rule bisub_rule[OF eq_sym_bientl])
+    then have "x + S n = 0 ⇛ ⊥"
+      by (rule eqsub_rule'[OF plus_succ])
+  }
+  have "\<And> n . x + S n = 0 ⇛ ⊥" by fact
+  then have "∀ (λ n . x + S n = 0 ⇛ ⊥)" ..
+  from all_ante and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma leq_plus: "x ≤ x + y"
+proof -
+  from entl_eg and refl show ?thesis
+    unfolding leq_def ..
+qed
+
+lemma sle_plus_succ: "x < x + S y"
+proof -
+  from entl_eg and refl show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma sle_succ: "x < S x"
+proof -
+  from plus_succ have "x + S 0 = S x" by(rule eqsub_rule[OF plus_zero])
+  from entl_eg and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma leq_refl: "x ≤ x"
+proof -
+  from entl_eg and plus_zero show ?thesis
+    unfolding leq_def ..
+qed
+
+lemma sle_antisymm_kaboom: "x < y ⊗ y < x ⇛ ⊥"
+proof -
+  { fix m
+    { fix n
+      from implI have "x + S n = y ⇛ y + S m = x ⇛ (x + S n) + S m = x" by(rule equals_left_rule)
+      then have "x + S n = y ⇛ y + S m = x ⇛ x + S n + S m = x" by (rule eqsub_rule'[OF plus_ass])
+      from conj_import and this have "x + S n = y ⊗ y + S m = x ⇛ x + S n + S m = x" ..
+      from this and plus_cancel_zero have "x + S n = y ⊗ y + S m = x ⇛ S n + S m = 0" ..
+      then have "x + S n = y ⊗ y + S m = x ⇛ S(S n + m) = 0" by(rule eqsub_rule[OF plus_succ])
+      then have "x + S n = y ⊗ y + S m = x ⇛ 0 = S(S n + m)" by(rule bisub_rule[OF eq_sym_bientl])
+      from this zero_succ_impl_kaboom have "x + S n = y ⊗ y + S m = x ⇛ ⊥" ..
+      from conj_export and this have "x + S n = y ⇛ y + S m = x ⇛ ⊥" ..
+    }
+    have "\<And> n . x + S n = y ⇛ y + S m = x ⇛ ⊥" by fact
+    then have "∀ (λ n . x + S n = y ⇛ y + S m = x ⇛ ⊥)" ..
+    from all_ante and this have
+      "x < y ⇛ y + S m = x ⇛ ⊥"
+      unfolding sle_def ..
+  }
+  have "\<And> m . x < y ⇛ y + S m = x ⇛ ⊥" by fact
+  then have "∀ (λ m . x < y ⇛ y + S m = x ⇛ ⊥)" ..
+  from all_cons and this have
+    "x < y ⇛ ∀ (λ m . y + S m = x ⇛ ⊥)" ..
+  from this and all_ante have
+    "x < y ⇛ y < x ⇛ ⊥"
+    unfolding sle_def ..
+  from conj_import and this show ?thesis ..
+qed
+
+lemma leq_antisymm: "x ≤ y ⊗ y ≤ x ⇛ x = y"
+proof -
+  from implI have case1:"x + 0 = y ⇛ x = y" by(rule eqsub_rule'[OF plus_zero])
+  from implI have "y + 0 = x ⇛ y = x" by(rule eqsub_rule'[OF plus_zero])
+  then have case2: "y + 0 = x ⇛ x = y" by(rule bisub_rule[OF eq_sym_bientl])
+
+  from leq_eq_or_sle and leq_eq_or_sle have
+    "x ≤ y ⊗ y ≤ x ⇛ (x = y ∨ x < y) ⊗ (y = x ∨ y < x)" by(rule factor_rule)
+  from this and double_dist have
+    step1:"x ≤ y ⊗ y ≤ x ⇛ x = y ∨ y = x ∨ (x < y ⊗ y < x)" ..
+
+  from implI have step2:"y = x ⇛ x = y" by(rule bisub_rule[OF eq_sym_bientl])
+  from sle_antisymm_kaboom and efq_impl have "x < y ⊗ y < x ⇛ x = y" ..
+  from step2 and this have
+    "y = x ∨ (x < y ⊗ y < x) ⇛ x = y" by (rule disj_left_rule)
+  from implI and this have
+    "x = y ∨ y = x ∨ (x < y ⊗ y < x) ⇛ x = y" by (rule disj_left_rule)
+  from step1 and this show ?thesis ..
+qed
+
+lemma leq_trans: "x ≤ y ⊗ y ≤ z ⇛ x ≤ z"
+proof -
+  { fix m
+    { fix n
+      from implI have
+        "x + n = y ⇛ y + m = z ⇛ (x + n) + m = z" by (rule equals_left_rule)
+      then have
+        "x + n = y ⇛ y + m = z ⇛ x + n + m = z" by (rule eqsub_rule'[OF plus_ass])
+      from impl_eg and this have
+        "x + n = y ⇛ y + m = z ⇛ x ≤ z"
+        unfolding leq_def
+        by(rule impl_link_121)
+    }
+    have "\<And> n . x + n = y ⇛ y + m = z ⇛ x ≤ z" by fact
+    then have "∀ (λ n . x + n = y ⇛ y + m = z ⇛ x ≤ z)" ..
+    from all_ante and this have
+      "x ≤ y ⇛ y + m = z ⇛ x ≤ z"
+      unfolding leq_def ..
+  }
+  have "\<And> m . x ≤ y ⇛ y + m = z ⇛ x ≤ z" by fact
+  then have "∀ (λ m . x ≤ y ⇛ y + m = z ⇛ x ≤ z)" ..
+  from all_cons and this have
+    "x ≤ y ⇛ ∀ (λ m . y + m = z ⇛ x ≤ z)" ..
+  from this and all_ante have
+    "x ≤ y ⇛ y ≤ z ⇛ x ≤ z"
+    unfolding leq_def ..
+  from conj_import and this show ?thesis ..
+qed
+
+lemma sle_refl_kaboom: "x < x ⇛ ⊥"
+proof -
+  { fix n
+    from plus_cancel_zero have "x + S n = x ⇛ 0 = S n" by(rule bisub_rule[OF eq_sym_bientl])
+    from this and zero_succ_impl_kaboom have "x + S n = x ⇛ ⊥" ..
+  }
+  have "\<And> n . x + S n = x ⇛ ⊥" by fact
+  then have "∀(λ n . x + S n = x ⇛ ⊥)" ..
+  from all_ante and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma sle_transitive: "x < y ⊗ y < z ⇛ x < z"
+proof -
+{ fix m
+    { fix n
+      from implI have
+        "x + S n = y ⇛ y + S m = z ⇛ (x + S n) + S m = z" by (rule equals_left_rule)
+      then have
+        "x + S n = y ⇛ y + S m = z ⇛ x + S n + S m = z" by (rule eqsub_rule'[OF plus_ass])
+      then have
+        "x + S n = y ⇛ y + S m = z ⇛ x + S (S n + m) = z" by (rule eqsub_rule[OF plus_succ])
+      from impl_eg and this have
+        "x + S n = y ⇛ y + S m = z ⇛ x < z"
+        unfolding sle_def
+        by(rule impl_link_121)
+    }
+    have "\<And> n . x + S n = y ⇛ y + S m = z ⇛ x < z" by fact
+    then have "∀ (λ n . x + S n = y ⇛ y + S m = z ⇛ x < z)" ..
+    from all_ante and this have
+      "x < y ⇛ y + S m = z ⇛ x < z"
+      unfolding sle_def ..
+  }
+  have "\<And> m . x < y ⇛ y + S m = z ⇛ x < z" by fact
+  then have "∀ (λ m . x < y ⇛ y + S m = z ⇛ x < z)" ..
+  from all_cons and this have
+    "x < y ⇛ ∀ (λ m . y + S m = z ⇛ x < z)" ..
+  from this and all_ante have
+    "x < y ⇛ y < z ⇛ x < z"
+    unfolding sle_def ..
+  from conj_import and this show ?thesis ..
+qed
+
+lemma self_succ_kaboom: "x = S x ⇛ ⊥"
+proof -
+  from sle_succ have "x = S x ⇛ x < x" by (rule equals_left_rule')
+  from this and sle_refl_kaboom show ?thesis ..
+qed
