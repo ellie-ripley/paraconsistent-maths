@@ -17,7 +17,7 @@ axiomatization
 
 axiomatization
   where succ_inj: "S x = S y ⇛ x = y"
-    and zero_succ_impl_kaboom: "0 = S x ⇛ ⊥"
+    and zero_succ_kaboom: "0 = S x ⇛ ⊥"
     and plus_zero: "x + 0 = x"
     and plus_succ: "x + S y = S (x + y)"
     and times_zero: "x × 0 = 0"
@@ -268,6 +268,13 @@ proof -
   from zerocase and inductive show ?thesis by (rule induction_rule_bare)
 qed
 
+lemma times_plus_dist': "(y + z) × x = (y × x) + (z × x)"
+  apply (rule eqsub_rule[OF times_comm[of x y]])
+  apply (rule eqsub_rule[OF times_comm[of x z]])
+  apply (rule eqsub_rule[OF times_comm[of x "(y + z)"]])
+  apply (rule times_plus_dist)
+  done
+
 lemma times_ass: "x × y × z = (x × y) × z"
 proof -
   from times_zero have "x × 0 = (x × y) × 0"
@@ -370,10 +377,10 @@ proof -
     unfolding sle_def ..
 qed
 
-lemma sle_zero_impl_kaboom: "x < 0 ⇛ ⊥"
+lemma sle_zero_kaboom: "x < 0 ⇛ ⊥"
 proof -
   { fix n
-    from zero_succ_impl_kaboom have "S (x + n) = 0 ⇛ ⊥"
+    from zero_succ_kaboom have "S (x + n) = 0 ⇛ ⊥"
       by (rule bisub_rule[OF eq_sym_bientl])
     then have "x + S n = 0 ⇛ ⊥"
       by (rule eqsub_rule'[OF plus_succ])
@@ -419,7 +426,7 @@ proof -
       from this and plus_cancel_zero have "x + S n = y ⊗ y + S m = x ⇛ S n + S m = 0" ..
       then have "x + S n = y ⊗ y + S m = x ⇛ S(S n + m) = 0" by(rule eqsub_rule[OF plus_succ])
       then have "x + S n = y ⊗ y + S m = x ⇛ 0 = S(S n + m)" by(rule bisub_rule[OF eq_sym_bientl])
-      from this zero_succ_impl_kaboom have "x + S n = y ⊗ y + S m = x ⇛ ⊥" ..
+      from this zero_succ_kaboom have "x + S n = y ⊗ y + S m = x ⇛ ⊥" ..
       from conj_export and this have "x + S n = y ⇛ y + S m = x ⇛ ⊥" ..
     }
     have "\<And> n . x + S n = y ⇛ y + S m = x ⇛ ⊥" by fact
@@ -491,7 +498,7 @@ lemma sle_refl_kaboom: "x < x ⇛ ⊥"
 proof -
   { fix n
     from plus_cancel_zero have "x + S n = x ⇛ 0 = S n" by(rule bisub_rule[OF eq_sym_bientl])
-    from this and zero_succ_impl_kaboom have "x + S n = x ⇛ ⊥" ..
+    from this and zero_succ_kaboom have "x + S n = x ⇛ ⊥" ..
   }
   have "\<And> n . x + S n = x ⇛ ⊥" by fact
   then have "∀(λ n . x + S n = x ⇛ ⊥)" ..
@@ -499,7 +506,7 @@ proof -
     unfolding sle_def ..
 qed
 
-lemma sle_transitive: "x < y ⊗ y < z ⇛ x < z"
+lemma sle_trans: "x < y ⊗ y < z ⇛ x < z"
 proof -
 { fix m
     { fix n
@@ -535,3 +542,172 @@ proof -
   from sle_succ have "x = S x ⇛ x < x" by (rule equals_left_rule')
   from this and sle_refl_kaboom show ?thesis ..
 qed
+
+lemma plus_leq_monotonic_left: "x ≤ y ⇛ x + z ≤ y + z"
+proof -
+  { fix n
+    from refl have
+      "x + n = y ⇛ (x + n) + z = y + z" by(rule equals_left_rule)
+    then have
+      "x + n = y ⇛ x + n + z = y + z" by(rule eqsub_rule'[OF plus_ass])
+    then have
+      "x + n = y ⇛ x + z + n = y + z" by(rule eqsub_rule[OF plus_comm])
+    then have
+      "x + n = y ⇛ (x + z) + n = y + z" by(rule eqsub_rule[OF plus_ass])
+    from this and impl_eg have
+      "x + n = y ⇛ x + z ≤ y + z"
+      unfolding leq_def ..
+  }
+  have "\<And> n. x + n = y ⇛ x + z ≤ y + z" by fact
+  then have "∀(λ n. x + n = y ⇛ x + z ≤ y + z)" ..
+  from all_ante and this show ?thesis
+    unfolding leq_def ..
+qed
+
+lemma plus_leq_cancel: "x + z ≤ y + z ⇛ x ≤ y"
+proof -
+  { fix n
+    from plus_cancel have
+      "x + n + z = y + z ⇛ x + n = y" by(rule eqsub_rule'[OF plus_ass])
+    then have
+      "x + z + n = y + z ⇛ x + n = y" by(rule eqsub_rule[OF plus_comm])
+    then have
+      "(x + z) + n = y + z ⇛ x + n = y" by(rule eqsub_rule[OF plus_ass])
+    from this and impl_eg have
+      "(x + z) + n = y + z ⇛ x ≤ y"
+      unfolding leq_def ..
+  }
+  have "\<And> n . (x + z) + n = y + z ⇛ x ≤ y" by fact
+  then have "∀(λ n . (x + z) + n = y + z ⇛ x ≤ y)" ..
+  from all_ante and this show ?thesis
+    unfolding leq_def ..
+qed
+
+(* this and the next are copy/paste find/replace versions of the previous two *)
+lemma plus_sle_monotonic_left: "x < y ⇛ x + z < y + z"
+proof -
+  { fix n
+    from refl have
+      "x + S n = y ⇛ (x + S n) + z = y + z" by(rule equals_left_rule)
+    then have
+      "x + S n = y ⇛ x + S n + z = y + z" by(rule eqsub_rule'[OF plus_ass])
+    then have
+      "x + S n = y ⇛ x + z + S n = y + z" by(rule eqsub_rule[OF plus_comm])
+    then have
+      "x + S n = y ⇛ (x + z) + S n = y + z" by(rule eqsub_rule[OF plus_ass])
+    from this and impl_eg have
+      "x + S n = y ⇛ x + z < y + z"
+      unfolding sle_def ..
+  }
+  have "\<And> n. x + S n = y ⇛ x + z < y + z" by fact
+  then have "∀(λ n. x + S n = y ⇛ x + z < y + z)" ..
+  from all_ante and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma plus_sle_monotonic_right: "x < y ⇛ z + x < z + y"
+  apply(rule eqsub_rule[OF plus_comm[of x z]])
+  apply(rule eqsub_rule[OF plus_comm[of y z]])
+  apply(rule plus_sle_monotonic_left)
+  done
+
+lemma plus_sle_double_monotonic: "x < y ⊗ u < v ⇛ x + u < y + v"
+proof -
+  from plus_sle_monotonic_left and plus_sle_monotonic_right have
+    "x < y ⊗ u < v ⇛ x + u < y + u ⊗ y + u < y + v"
+    by(rule factor_rule)
+  from this and sle_trans show ?thesis ..
+qed
+
+lemma plus_sle_cancel: "x + z < y + z ⇛ x < y"
+proof -
+  { fix n
+    from plus_cancel have
+      "x + S n + z = y + z ⇛ x + S n = y" by(rule eqsub_rule'[OF plus_ass])
+    then have
+      "x + z + S n = y + z ⇛ x + S n = y" by(rule eqsub_rule[OF plus_comm])
+    then have
+      "(x + z) + S n = y + z ⇛ x + S n = y" by(rule eqsub_rule[OF plus_ass])
+    from this and impl_eg have
+      "(x + z) + S n = y + z ⇛ x < y"
+      unfolding sle_def ..
+  }
+  have "\<And> n . (x + z) + S n = y + z ⇛ x < y" by fact
+  then have "∀(λ n . (x + z) + S n = y + z ⇛ x < y)" ..
+  from all_ante and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma times_leq_monotonic_left: "x ≤ y ⇛ x × z ≤ y × z"
+proof -
+  { fix n
+    from refl have
+      "x + n = y ⇛ (x + n) × z = y × z" by(rule equals_left_rule)
+    then have
+      "x + n = y ⇛ (x × z) + (n × z) = y × z" by(rule eqsub_rule[OF times_plus_dist'])
+    from this and impl_eg have
+      "x + n = y ⇛ x × z ≤ y × z"
+      unfolding leq_def ..
+  }
+  have "\<And> n. x + n = y ⇛ x × z ≤ y × z" by fact
+  then have "∀(λ n. x + n = y ⇛ x × z ≤ y × z)" ..
+  from all_ante and this show ?thesis
+    unfolding leq_def ..
+qed
+
+lemma times_sle_monotonic_left: "x < y ⇛ x × S z < y × S z"
+proof -
+  { fix n
+    from refl have
+      "x + S n = y ⇛ (x + S n) × S z = y × S z" by(rule equals_left_rule)
+    then have
+      "x + S n = y ⇛ (x × S z) + ((S n) × S z) = y × S z"
+      by(rule eqsub_rule[OF times_plus_dist'])
+    then have
+      "x + S n = y ⇛ (x × S z) + ((S n) × z) + S n = y × S z"
+      by(rule eqsub_rule[OF times_succ])
+    then have
+      "x + S n = y ⇛ (x × S z) + S (((S n) × z) + n) = y × S z"
+      by(rule eqsub_rule[OF plus_succ])
+    from this and impl_eg have
+      "x + S n = y ⇛ x × S z < y × S z"
+      unfolding sle_def ..
+  }
+  have "\<And> n. x + S n = y ⇛ x × S z < y × S z" by fact
+  then have "∀(λ n. x + S n = y ⇛ x × S z < y × S z)" ..
+  from all_ante and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma archimedes: "0 < n ⇛ x ≤ x × n"
+proof -
+  from sle_refl_kaboom and efq_impl have
+    "0 < 0 ⇛ x ≤ x × 0" ..
+  then have
+    zerohorn:"n = 0 ⇛ 0 < n ⇛ x ≤ x × n"
+    by(rule equals_left_rule')
+
+  { fix m
+    from leq_plus have "x ≤ x × m + x"
+      by(rule eqsub_rule[OF plus_comm])
+    then have "x ≤ x × S m"
+      by(rule eqsub_rule'[OF times_succ])
+    from implK and this have
+      "0 < n ⇛ x ≤ x × S m" ..
+    then have
+      "n = S m ⇛ 0 < n ⇛ x ≤ x × n"
+      by(rule equals_left_rule')
+  }
+  have "\<And> m . n = S m ⇛ 0 < n ⇛ x ≤ x × n" by fact
+  then have "∀(λ m . n = S m ⇛ 0 < n ⇛ x ≤ x × n)" ..
+  from all_ante and this have
+    "∃(λ m . n = S m) ⇛ 0 < n ⇛ x ≤ x × n" ..
+
+  from zerohorn and this have
+    almost:"n = 0 ∨ ∃(λ m . n = S m) ⇛ 0 < n ⇛ x ≤ x × n"
+    by(rule disj_left_rule)
+  from entl_ui and prop_24 have "n = 0 ∨ ∃(λ m . n = S m)" ..
+  from almost and this show ?thesis ..
+qed
+
+end
