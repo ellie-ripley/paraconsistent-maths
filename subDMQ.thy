@@ -1274,6 +1274,22 @@ lemma disj_monotone_right: "(A ∨ B) ⊗ (B ⇛ C) ⇛ A ∨ C"
     from conj_import and this show ?thesis ..
   qed
 
+lemma disj_monotone_left: "(A ∨ B) ⊗ (A ⇛ C) ⇛ C ∨ B"
+  apply(rule bisub_rule[OF disj_bicomm[of B A]])
+  apply(rule bisub_rule[OF disj_bicomm[of B C]])
+  apply(rule disj_monotone_right)
+  done
+
+lemma disj_monotone_left_rule: "A ⇛ C ⟹ A ∨ B ⟹ C ∨ B"
+proof -
+  assume ac:"A ⇛ C" and ab:"A ∨ B"
+  from disj_monotone_left have "(A ⇛ C) ⊗ (A ∨ B) ⇛ C ∨ B"
+    by(rule bisub_rule[OF conj_bicomm])
+  from conj_export and this have "(A ⇛ C) ⇛ A ∨ B ⇛ C ∨ B" ..
+  from this and ac have "A ∨ B ⇛ C ∨ B" ..
+  from this and ab show ?thesis ..
+qed
+
 lemma eg_under_disjr: "(A ∨ P(t)) ⇛ A ∨ ∃ P"
   proof -
     from conj_export and disj_monotone_right have
@@ -1402,6 +1418,36 @@ lemma some_over_and: "A ⊗ ∃ P ⇛ ∃(λx. A ⊗ P x)"
       "A ⇛ ∃ P ⇛ ∃(λx. A ⊗ P x)" ..
     from conj_import and this show ?thesis ..
   qed
+
+lemma impl_trans: "(A ⇛ B) ⊗ (B ⇛ C) ⇛ A ⇛ C"
+proof -
+  from conj_import and implB have "(B ⇛ C) ⊗ (A ⇛ B) ⇛ A ⇛ C" ..
+  from this show ?thesis by(rule bisub_rule[OF conj_bicomm])
+qed
+
+lemma disj_factor: "(A ⇛ B) ⊗ (C ⇛ D) ⇛ A ∨ C ⇛ B ∨ D"
+proof -
+  from disj_monotone_left have
+    "(A ⇛ B) ⊗ (A ∨ C) ⇛ B ∨ C" by (rule bisub_rule[OF conj_bicomm])
+  from conj_export and this have
+    step1:"(A ⇛ B) ⇛ A ∨ C ⇛ B ∨ C" ..
+
+  from disj_monotone_right have
+    "(C ⇛ D) ⊗ (B ∨ C) ⇛ B ∨ D" by (rule bisub_rule[OF conj_bicomm])
+  from conj_export and this have
+    step2: "(C ⇛ D) ⇛ B ∨ C ⇛ B ∨ D" ..
+
+  from step1 and step2 have
+    "(A ⇛ B) ⊗ (C ⇛ D) ⇛ (A ∨ C ⇛ B ∨ C) ⊗ (B ∨ C ⇛ B ∨ D)" by(rule factor_rule)
+  from this and impl_trans show ?thesis ..
+qed
+
+lemma disj_factor_rule: "A ⇛ B ⟹ C ⇛ D ⟹ A ∨ C ⇛ B ∨ D"
+proof -
+  assume ab:"A ⇛ B" and cd:"C ⇛ D"
+  from ab and cd have "(A ⇛ B) ⊗ (C ⇛ D)" ..
+  from disj_factor and this show ?thesis ..
+qed
 
 lemma reductio: "(A ⇛ ¬A) ⇛ ¬A"
   proof -

@@ -506,6 +506,12 @@ proof -
     unfolding sle_def ..
 qed
 
+lemma sle_and_eq_kaboom: "x < y ⇛ x = y ⇛ ⊥"
+proof -
+  from sle_refl_kaboom have "x = y ⇛ x < y ⇛ ⊥" by (rule equals_left_rule)
+  from implC and this show ?thesis ..
+qed
+
 lemma sle_trans: "x < y ⊗ y < z ⇛ x < z"
 proof -
 { fix m
@@ -708,6 +714,96 @@ proof -
     by(rule disj_left_rule)
   from entl_ui and prop_24 have "n = 0 ∨ ∃(λ m . n = S m)" ..
   from almost and this show ?thesis ..
+qed
+
+lemma sle_succ_leq: "x < y ⇛ S x ≤ y"
+proof -
+  { fix n
+    from implI have "x + S n = y ⇛ S x + n = y"
+      by(rule eqsub_rule[OF plus_comm_aux])
+    from this and impl_eg have "x + S n = y ⇛ S x ≤ y"
+      unfolding leq_def ..
+  }
+  have "\<And> n . x + S n = y ⇛ S x ≤ y" by fact
+  then have "∀(λ n. x + S n = y ⇛ S x ≤ y)" ..
+  from all_ante and this show ?thesis
+    unfolding sle_def ..
+qed
+
+lemma linearity: "x ≤ y ∨ y ≤ x"
+proof -
+  let ?phi = "λ u v. u ≤ v ∨ v ≤ u"
+  from impl_disj_inl and zero_leq  have zerocase:"?phi 0 y" ..
+
+  { fix x
+    from sle_leq and sle_succ have start:"x ≤ S x" ..
+    from impl_conj_in and this have "y ≤ x ⇛ y ≤ x ⊗ x ≤ S x" ..
+    from this and leq_trans have "y ≤ x ⇛ y ≤ S x" ..
+    from this and impl_disj_inr have righthorn:"y ≤ x ⇛ ?phi (S x) y" ..
+
+    from start have "x = y ⇛ y ≤ S x" by(rule equals_left_rule)
+    from this and impl_disj_inr have leftequalshorn: "x = y ⇛ ?phi (S x) y" ..
+    from sle_succ_leq and impl_disj_inl have leftslehorn: "x < y ⇛ ?phi (S x) y" ..
+    from leftequalshorn and leftslehorn have
+      "x = y ∨ x < y ⇛ ?phi (S x) y" by(rule disj_left_rule)
+    from leq_eq_or_sle and this have
+      lefthorn:"x ≤ y ⇛ ?phi (S x) y" ..
+
+    from lefthorn and righthorn have "?phi x y ⇛ ?phi (S x) y" by(rule disj_left_rule)
+  }
+  have "\<And> x. ?phi x y ⇛ ?phi (S x) y" by fact
+  then have inductive:"∀(λ x. ?phi x y ⇛ ?phi (S x) y)" ..
+
+  from zerocase and inductive show ?thesis by(rule induction_rule_bare)
+qed
+
+lemma trichotomy: "x < y ∨ x = y ∨ y < x"
+proof -
+  from leq_eq_or_sle and leq_eq_or_sle have
+    "x ≤ y ∨ y ≤ x ⇛ (x = y ∨ x < y) ∨ (y = x ∨ y < x)"
+    by(rule disj_factor_rule)
+  from this and linearity have
+    fourway:"(x = y ∨ x < y) ∨ (y = x ∨ y < x)" ..
+
+  from implI have "y = x ⇛ x = y" by(rule bisub_rule[OF eq_sym_bientl])
+  from implI and this have twotoone:"x = y ∨ y = x ⇛ x = y" by(rule disj_left_rule)
+
+  from fourway have "(x = y ∨ y = x) ∨ (x < y ∨ y < x)"
+    (* by(subdmq_normalize) *)
+    apply -
+    apply(rule bisub_rule'[OF disj_biass])
+    apply(rule bisub_rule[OF disj_bicomm[of _ "x < y"]])
+    apply(rule bisub_rule[OF disj_biass[of _ _ "x < y"]])
+    apply(rule bisub_rule[OF disj_bicomm[of _ "y = x"]])
+    apply(rule bisub_rule'[OF disj_biass])
+    apply(rule bisub_rule[OF disj_biass])
+    apply assumption
+    done
+
+  from twotoone and this have "x = y ∨ (x < y ∨ y < x)" by(rule disj_monotone_left_rule)
+  from this show ?thesis
+    by(subdmq_normalize)
+qed
+
+lemma times_cancel: "x × S z = y × S z ⇛ x = y"
+proof -
+  from efq_impl and sle_and_eq_kaboom have
+    "x × S z < y × S z ⇛ x × S z = y × S z ⇛ x = y" by(rule impl_link_121)
+  from times_sle_monotonic_left and this have
+    firsthorn:"x < y ⇛ x × S z = y × S z ⇛ x = y" ..
+
+  from efq_impl and sle_and_eq_kaboom have
+    "y × S z < x × S z ⇛ y × S z = x × S z ⇛ x = y" by(rule impl_link_121)
+  then have
+    "y × S z < x × S z ⇛ x × S z = y × S z ⇛ x = y" by(rule bisub_rule[OF eq_sym_bientl])
+  from times_sle_monotonic_left and this have
+    thirdhorn:"y < x ⇛ x × S z = y × S z ⇛ x = y" ..
+
+  from implK and thirdhorn have
+    "x = y ∨ y < x ⇛ x × S z = y × S z ⇛ x = y" by(rule disj_left_rule)
+  from firsthorn and this have
+    "x < y ∨ x = y ∨ y < x ⇛ x × S z = y × S z ⇛ x = y" by(rule disj_left_rule)
+  from this and trichotomy show ?thesis ..
 qed
 
 end
