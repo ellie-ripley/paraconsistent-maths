@@ -3,7 +3,7 @@
 *)
 
 
-section \<open>Naive set theory in subDMQ\<close>
+section \<open>Arithmetic in subDMQ\<close>
 
 theory "subDMQ-arithmetic"
   imports subDMQ "subDMQ-tactics"
