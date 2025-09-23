@@ -1280,6 +1280,24 @@ lemma disj_monotone_left: "(A ∨ B) ⊗ (A ⇛ C) ⇛ C ∨ B"
   apply(rule disj_monotone_right)
   done
 
+lemma disj_monotone_left_impl_rule: "A ⇛ C ⟹ A ∨ B ⇛ C ∨ B"
+proof -
+  assume ac:"A ⇛ C"
+  from disj_monotone_left have "(A ⇛ C) ⊗ (A ∨ B) ⇛ C ∨ B"
+    by(rule bisub_rule[OF conj_bicomm])
+  from conj_export and this have "(A ⇛ C) ⇛ A ∨ B ⇛ C ∨ B" ..
+  from this and ac show ?thesis ..
+qed
+
+lemma disj_monotone_right_impl_rule: "B ⇛ C ⟹ A ∨ B ⇛ A ∨ C"
+proof -
+  assume bc:"B ⇛ C"
+  from disj_monotone_right have "(B ⇛ C) ⊗ (A ∨ B) ⇛ A ∨ C"
+    by(rule bisub_rule[OF conj_bicomm])
+  from conj_export and this have "(B ⇛ C) ⇛ A ∨ B ⇛ A ∨ C" ..
+  from this and bc show ?thesis ..
+qed
+
 lemma disj_monotone_left_rule: "A ⇛ C ⟹ A ∨ B ⟹ C ∨ B"
 proof -
   assume ac:"A ⇛ C" and ab:"A ∨ B"
@@ -1287,6 +1305,16 @@ proof -
     by(rule bisub_rule[OF conj_bicomm])
   from conj_export and this have "(A ⇛ C) ⇛ A ∨ B ⇛ C ∨ B" ..
   from this and ac have "A ∨ B ⇛ C ∨ B" ..
+  from this and ab show ?thesis ..
+qed
+
+lemma disj_monotone_right_rule: "B ⇛ C ⟹ A ∨ B ⟹ A ∨ C"
+proof -
+  assume bc:"B ⇛ C" and ab:"A ∨ B"
+  from disj_monotone_right have "(B ⇛ C) ⊗ (A ∨ B) ⇛ A ∨ C"
+    by(rule bisub_rule[OF conj_bicomm])
+  from conj_export and this have "(B ⇛ C) ⇛ A ∨ B ⇛ A ∨ C" ..
+  from this and bc have "A ∨ B ⇛ A ∨ C" ..
   from this and ab show ?thesis ..
 qed
 
