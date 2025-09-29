@@ -1604,7 +1604,6 @@ lemma disj_monotone_left: "(A ∨ B) ⊗ (A ⇛ C) ⇛ C ∨ B"
   apply(rule disj_monotone_right)
   done
 #+end_src
-
 *** lemma disj_monotone_left_impl_rule: "A ⇛ C ⟹ A ∨ B ⇛ C ∨ B"
 #+begin_src isabelle
 lemma disj_monotone_left_impl_rule: "A ⇛ C ⟹ A ∨ B ⇛ C ∨ B"
