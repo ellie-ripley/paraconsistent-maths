@@ -238,10 +238,84 @@ qed
 #+end_src
 
 ** composition
-*** lemma epos_epos_epos: "epos C ⟹ epos D ⟹ epos (λ p. D ( C p ))"
+*** lemma iipos_composition: "iipos C ⟹ iipos D ⟹ iipos (λ p . C (D p))"
 #+begin_src isabelle
-lemma epos_epos_epos: "epos C ⟹ epos D ⟹ epos (λ p. D ( C p ))"
-proof -
+lemma iipos_composition: "iipos C ⟹ iipos D ⟹ iipos (λ p . C (D p))"
+  apply(erule Pure.revcut_rl, assumption)
+  done
+#+end_src
+*** lemma iipos_after_iineg_composition: "iipos C ⟹ iineg D ⟹ iineg (λ p . C (D p))"
+#+begin_src isabelle
+lemma iipos_after_iineg_composition: "iipos C ⟹ iineg D ⟹ iineg (λ p . C (D p))"
+  apply(erule Pure.revcut_rl, assumption)
+  done
+#+end_src
+*** lemma iineg_after_iipos_composition: "iineg C ⟹ iipos D ⟹ iineg (λ p . C (D p))"
+#+begin_src isabelle
+lemma iineg_after_iipos_composition: "iineg C ⟹ iipos D ⟹ iineg (λ p . C (D p))"
+  apply(erule Pure.revcut_rl, assumption)
+  done
+#+end_src
+*** lemma iineg_composition: "iineg C ⟹ iineg D ⟹ iipos (λ p . C (D p))"
+#+begin_src isabelle
+lemma iineg_composition: "iineg C ⟹ iineg D ⟹ iipos (λ p . C (D p))"
+  apply(erule Pure.revcut_rl, assumption)
+  done
+#+end_src
 
+** tactics
+*** handle one layer
+#+begin_src isabelle
+ML ‹
+signature POSNEG_TACTICS =
+sig
+  val posneg_onelevel_tac: Proof.context -> tactic;
+  (*val posneg_tac: Proof.context -> tactic;*)
+end;
+
+structure PosnegTactics: POSNEG_TACTICS =
+struct
+  val tonicity_theorems =
+    [ @{thm conjunction_left_iipos}
+    , @{thm conjunction_right_iipos}
+    , @{thm disjunction_left_iipos}
+    , @{thm disjunction_right_iipos}
+    , @{thm implication_left_iineg}
+    , @{thm implication_right_iipos}
+    ]
+  fun posneg_onelevel_tac ctxt =
+    ALLGOALS (resolve_tac ctxt tonicity_theorems)
+
+end;
+
+val _ =
+   Theory.setup (
+      Method.setup \<^binding>‹posneg_onelevel›
+        (Scan.succeed (fn ctxt => SIMPLE_METHOD (PosnegTactics.posneg_onelevel_tac ctxt)))
+        "go down one level, minding tonicity"
+)
+
+›
+#+end_src
+** test cases
+*** lemma posneg_test_1: "C ∨ (A ⊗ B) ⇛ C ∨ A"
+#+begin_src isabelle
+lemma posneg_test_1: "C ∨ (A ⊗ B) ⇛ C ∨ A"
+  apply(posneg_onelevel)
+  apply(rule impl_cel)
+  done
+#+end_src
+*** lemma posneg_test_2: "C ∨ (A ⊗ B) ⇛ C ∨ A"
+#+begin_src isabelle
+lemma posneg_test_2: "C ∨ (A ⊗ B) ⇛ C ∨ A"
+proof -
+  from impl_cel show ?thesis by(posneg_onelevel)
+qed
+#+end_src
+*** lemma posneg_test_3: "(D ⇛ C ∨ (A ⊗ B)) ⇛ D ⇛ C ∨ A"
+#+begin_src isabelle
+lemma posneg_test_3: "(D ⇛ C ∨ (A ⊗ B)) ⇛ D ⇛ C ∨ A"
+proof -
+  from impl_cel show ?thesis by(posneg_onelevel+)
 qed
 #+end_src
