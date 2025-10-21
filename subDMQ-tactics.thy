@@ -13,7 +13,7 @@ begin
              then everything else
 *)
 
-ML ‹
+ML \<open>
 
 signature SUBDMQ_CLUNKY_TACTICS =
 sig
@@ -71,7 +71,7 @@ fun norm_conj_assoc2 (ctxt : Proof.context) : tactic =
 
 fun norm_conj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context) (th : thm) : thm Seq.seq =
  let
-    val frame = Var (("p", 0), @{typ ‹o ⇒ o›});
+    val frame = Var (("p", 0), @{typ \<open>o \<Rightarrow> o\<close>});
     val pat = @{const "subDMQ.conj"} $ Var (("a", 0), @{typ o}) $ Var (("b", 0), @{typ o});
     val leaves =
       Thm.prems_of th
@@ -107,7 +107,7 @@ fun norm_disj_assoc2 (ctxt : Proof.context) : tactic =
 
 fun norm_disj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context) (th : thm) : thm Seq.seq =
   let
-    val frame = Var (("p", 0), @{typ ‹o ⇒ o›});
+    val frame = Var (("p", 0), @{typ \<open>o \<Rightarrow> o\<close>});
     val pat = @{const "subDMQ.disj"} $ Var (("a", 0), @{typ o}) $ Var (("b", 0), @{typ o});
     val leaves =
       Thm.prems_of th
@@ -135,7 +135,7 @@ val norm_disj_comm2 = norm_disj_comm_skel (("B", 0), @{typ o}) (("A", 0), @{typ 
 
 fun norm_bientl_comm (ctxt : Proof.context) (th : thm) : thm Seq.seq =
   let
-    val frame = Var (("p", 0), @{typ ‹o ⇒ o›});
+    val frame = Var (("p", 0), @{typ \<open>o \<Rightarrow> o\<close>});
     val pat = @{const "subDMQ.bientl"} $ Var (("a", 0), @{typ o}) $ Var (("b", 0), @{typ o});
     val leaves =
       Thm.prems_of th
@@ -167,7 +167,7 @@ fun norm_dn_strip2 (ctxt : Proof.context) : tactic =
 
 (*
     1                      2           3
- (A1 ⟹ A2 ⟹ B)    (C ⟹ D)    (E ⟹ F)
+ (A1 \<Longrightarrow> A2 \<Longrightarrow> B)    (C \<Longrightarrow> D)    (E \<Longrightarrow> F)
 -------------------------------------
   #P
 
@@ -192,12 +192,12 @@ end;
 
 val _ =
   Theory.setup (
-      Method.setup \<^binding>‹subdmq_clunky_normalize›
+      Method.setup \<^binding>\<open>subdmq_clunky_normalize\<close>
         (Scan.succeed (fn ctxt => SIMPLE_METHOD (SubDMQClunkyTactics.subdmq_normalize_tac ctxt)))
         "normalise SubDMQ logic sentences")
-›
+\<close>
 
-ML ‹
+ML \<open>
 
 signature SUBDMQ_TACTICS =
 sig
@@ -288,7 +288,7 @@ fun ordered_equiv_in_context_thm
         val vargs = List.map (fn (i, ty) => Var (("a", i), ty)) (tag_list 1 tyargs)
         val pat = Term.list_comb (pat_head, vargs);
         (* collect leaves of this pattern *)
-        val frame = Var (("p", 0), @{typ ‹o ⇒ o›});
+        val frame = Var (("p", 0), @{typ \<open>o \<Rightarrow> o\<close>});
         val leaves =
           Thm.prems_of goal_th
           |> gather_leaves gctxt pat frame
@@ -336,10 +336,16 @@ end;
 
 val _ =
   Theory.setup (
-      Method.setup \<^binding>‹subdmq_normalize›
+      Method.setup \<^binding>\<open>subdmq_normalize\<close>
         (Scan.succeed (fn ctxt => SIMPLE_METHOD (SubDMQTactics.subdmq_normalize_tac ctxt)))
         "normalise SubDMQ logic sentences"
 )
-›
+\<close>
+
+lemma normalize_test: "P x \<otimes> P y \<Rrightarrow> u = v \<Longrightarrow> P y \<otimes> P x \<Rrightarrow> u = v"
+proof -
+  assume prem:"P x \<otimes> P y \<Rrightarrow> u = v"
+  from prem show ?thesis by(subdmq_normalize)
+qed
 
 end

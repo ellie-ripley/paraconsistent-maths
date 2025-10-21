@@ -30,10 +30,10 @@ axiomatization
   and succ  :: "i ⇒ i" ("S _" [95] 95)
 
 
-lemma normalize_test2: "N x ⊗ N x ⊗ N 0 ⇛ x + S 0 = S x ⟹ N 0 ⊗ N x ⊗ N x ⇛ x + S 0 = S x"
+lemma normalize_test2: "N x ⊗ N 0 ⇛ x + S 0 = S x ⟹ N 0 ⊗ N x ⇛ x + S 0 = S x"
 proof -
-  assume prem:"N x \<otimes> N x \<otimes> N 0 \<Rrightarrow> x + S 0 = S x"
-  from prem show ?thesis by(subdmq_normalize)
+  assume prem:"N x \<otimes> N 0 \<Rrightarrow> x + S 0 = S x"
+  from prem show ?thesis by(subdmq_clunky_normalize)
 qed
 
 axiomatization
