@@ -296,6 +296,27 @@ proof -
   from this and refl show ?thesis ..
 qed
 
+lemma eqsub_rule_dt: "A ⇛ x = y ⟹ P x ⟹ A ⇛ P y"
+proof -
+  assume axy:"A ⇛ x = y" and px:"P x"
+  from axy and equals_sub_impl have "A ⇛ (P x → P y)"..
+  from this and entl_impl have "A ⇛ P x ⇛ P y" ..
+  from implC and this have "P x ⇛ A ⇛ P y" ..
+  from this and px show ?thesis..
+qed
+
+lemma eqsub_rule'_dt: "A ⇛ x = y ⟹ P y ⟹ A ⇛ P x"
+proof -
+  assume axy:"A ⇛ x = y" and py:"P y"
+  from eq_sym_bientl and axy have "A ⇛ y = x" by (rule bisub_rule)
+  from this and py show ?thesis by (rule eqsub_rule_dt)
+qed
+
+lemma eqsub_context_dt: "(A ⇛ x = y) ⇛ A ⇛ t x = t y"
+proof -
+  from implB and eqsub_context show ?thesis..
+qed
+
 lemma implB': "(A ⇛ B) ⇛ (B ⇛ C) ⇛ A ⇛ C"
   proof -
     from implC and implB show "(A ⇛ B) ⇛ (B ⇛ C) ⇛ A ⇛ C" ..
