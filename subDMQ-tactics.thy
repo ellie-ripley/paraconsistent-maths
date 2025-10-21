@@ -328,7 +328,7 @@ fun ordered_rw_thms ctxt prf_th =
 fun subdmq_normalize_tac ctxt =
     REPEAT_DETERM (CHANGED (FIRSTGOAL
       (fn i:int => fn th =>
-        let val (r_thms, e_thms) = ordered_rw_thms ctxt th
+        let val (r_thms, e_thms) = ordered_rw_thms ctxt th |> (fn x => (@{print} x; x))
         in (resolve_tac ctxt r_thms ORELSE' eresolve_tac ctxt e_thms) i th
         end)));
 
