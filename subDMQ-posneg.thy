@@ -203,7 +203,7 @@ ML ‹
 signature POSNEG_TACTICS =
 sig
   val posneg_onelevel_tac: Proof.context -> tactic;
-  (*val posneg_tac: Proof.context -> tactic;*)
+  val posneg_rule_tac: Proof.context -> tactic;
 end;
 
 structure PosnegTactics: POSNEG_TACTICS =
@@ -216,9 +216,9 @@ struct
     , @{thm implication_left_iineg}
     , @{thm implication_right_iipos}
     ]
-  fun posneg_onelevel_tac ctxt =
-    ALLGOALS (resolve_tac ctxt tonicity_theorems)
-
+  fun posneg_onelevel_tac ctxt = FIRSTGOAL (resolve_tac ctxt tonicity_theorems)
+  fun posneg_rule_tac ctxt = posneg_onelevel_tac ctxt
+                             THEN ALLGOALS (resolve_tac ctxt [@{thm impl_mp}])
 end;
 
 val _ =
@@ -226,6 +226,12 @@ val _ =
       Method.setup \<^binding>‹posneg_onelevel›
         (Scan.succeed (fn ctxt => SIMPLE_METHOD (PosnegTactics.posneg_onelevel_tac ctxt)))
         "go down one level, minding tonicity"
+)
+val _ =
+   Theory.setup (
+      Method.setup \<^binding>‹posneg_rule›
+           (Scan.succeed (fn ctxt => SIMPLE_METHOD (PosnegTactics.posneg_rule_tac ctxt)))
+           "go down one level, minding tonicity"
 )
 
 ›
@@ -242,5 +248,32 @@ qed
 
 lemma posneg_test_3: "(D ⇛ C ∨ (A ⊗ B)) ⇛ D ⇛ C ∨ A"
 proof -
-
+  from impl_cel show ?thesis by(posneg_onelevel+)
 qed
+
+lemma posneg_test_4: "(D ⇛ A) ⇛ (D ⊗ E ⇛ C ∨ A)"
+proof -
+  from impl_cel have step1:"(D ⇛ A) ⇛ (D ⊗ E ⇛ A)" by(posneg_onelevel)
+  from impl_disj_inr have "(D ⊗ E ⇛ A) ⇛ (D ⊗ E ⇛ C ∨ A)" by(posneg_onelevel)
+  from step1 and this show ?thesis ..
+qed
+
+lemma posneg_test_5: "p ∨ ¬p ⇛ (p ∨ q ∨ ¬p)"
+  apply(posneg_onelevel)
+  apply(rule impl_disj_inr)
+  done
+
+lemma posneg_test_6: "p ∨ q ∨ ¬ p"
+  apply(rule impl_mp[OF _ lem])
+  apply(posneg_onelevel)
+  oops
+
+  from impl_disj_inr and lem 
+
+
+
+
+
+
+
+end
