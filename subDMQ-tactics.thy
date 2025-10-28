@@ -19,12 +19,10 @@ signature SUBDMQ_CLUNKY_TACTICS =
 sig
   (* Raw tactics *)
   val norm_bientl_comm : Proof.context -> tactic;
-  val norm_conj_comm_skel : Vars.key -> Vars.key -> Proof.context -> tactic;
   val norm_conj_comm : Proof.context -> tactic;
   val norm_conj_comm2 : Proof.context -> tactic;
   val norm_conj_assoc : Proof.context -> tactic;
   val norm_conj_assoc2 : Proof.context -> tactic;
-  val norm_disj_comm_skel : Vars.key -> Vars.key -> Proof.context -> tactic;
   val norm_disj_comm : Proof.context -> tactic;
   val norm_disj_comm2 : Proof.context -> tactic;
   val norm_disj_assoc : Proof.context -> tactic;
@@ -69,7 +67,7 @@ fun norm_conj_assoc (ctxt : Proof.context) : tactic =
 fun norm_conj_assoc2 (ctxt : Proof.context) : tactic =
   REPEAT_DETERM (CHANGED (ALLGOALS (dresolve_tac ctxt [@{thm conj_assoc_in_context2}])));
 
-fun norm_conj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context) (th : thm) : thm Seq.seq =
+fun norm_conj_comm_skel (resolver: Proof.context -> thm list -> int -> tactic) (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context) (th : thm) : thm Seq.seq =
  let
     val frame = Var (("p", 0), @{typ \<open>o \<Rightarrow> o\<close>});
     val pat = @{const "subDMQ.conj"} $ Var (("a", 0), @{typ o}) $ Var (("b", 0), @{typ o});
@@ -80,7 +78,7 @@ fun norm_conj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context)
     val leafpairs = upper_tri_pairs leaves |> (fn x => (@{print} x; x))
   in
     REPEAT_DETERM (CHANGED (
-      FIRSTGOAL (resolve_tac ctxt
+      FIRSTGOAL (resolver ctxt
         ((maps
           (fn (ta, tb) =>
               (map
@@ -88,12 +86,12 @@ fun norm_conj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context)
                                                 (vka, ta)
                                                 (vkb, tb)))
                [ @{thm conj_left_comm_in_context}, @{thm conj_comm_in_context} ]))
-          leafpairs) |> (fn x => (@{print} x; x)))
+          leafpairs) |> (fn x => (@{print} "conjcomm "; x)) |> (fn x => (@{print} x; x)))
     ))) th
   end;
 
-val norm_conj_comm = norm_conj_comm_skel (("A", 0), @{typ o}) (("B", 0), @{typ o})
-val norm_conj_comm2 = norm_conj_comm_skel (("B", 0), @{typ o}) (("A", 0), @{typ o})
+val norm_conj_comm = norm_conj_comm_skel resolve_tac (("A", 0), @{typ o}) (("B", 0), @{typ o})
+val norm_conj_comm2 = norm_conj_comm_skel dresolve_tac (("B", 0), @{typ o}) (("A", 0), @{typ o})
 
 
 (* disj *)
@@ -105,7 +103,7 @@ fun norm_disj_assoc2 (ctxt : Proof.context) : tactic =
   REPEAT_DETERM (CHANGED (ALLGOALS (dresolve_tac ctxt [@{thm disj_assoc_in_context2}])));
 
 
-fun norm_disj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context) (th : thm) : thm Seq.seq =
+fun norm_disj_comm_skel (resolver: Proof.context -> thm list -> int -> tactic) (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context) (th : thm) : thm Seq.seq =
   let
     val frame = Var (("p", 0), @{typ \<open>o \<Rightarrow> o\<close>});
     val pat = @{const "subDMQ.disj"} $ Var (("a", 0), @{typ o}) $ Var (("b", 0), @{typ o});
@@ -118,7 +116,7 @@ fun norm_disj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context)
     REPEAT_DETERM (CHANGED (EVERY (
       map
         (fn (ta, tb) =>
-          FIRSTGOAL (resolve_tac ctxt
+          FIRSTGOAL (resolver ctxt
             (map
               (Thm.instantiate (TVars.empty, Vars.make2
                                               (vka, ta)
@@ -128,8 +126,8 @@ fun norm_disj_comm_skel (vka : Vars.key) (vkb : Vars.key) (ctxt : Proof.context)
     ))) th
   end;
 
-val norm_disj_comm = norm_disj_comm_skel (("A", 0), @{typ o}) (("B", 0), @{typ o})
-val norm_disj_comm2 = norm_disj_comm_skel (("B", 0), @{typ o}) (("A", 0), @{typ o})
+val norm_disj_comm = norm_disj_comm_skel resolve_tac (("A", 0), @{typ o}) (("B", 0), @{typ o})
+val norm_disj_comm2 = norm_disj_comm_skel dresolve_tac (("B", 0), @{typ o}) (("A", 0), @{typ o})
 
 (* bientl *)
 
@@ -175,8 +173,8 @@ fun norm_dn_strip2 (ctxt : Proof.context) : tactic =
 
 (* Normalise subdmq sentences. *)
 val subdmq_normalize_tac =
+    (fn c => print_tac c "One more pass") THEN'
     (norm_dn_strip #> TRY) THEN'
-    (fn c => print_tac c "Oy") THEN'
     (norm_dn_strip2 #> TRY) THEN'
     (norm_conj_assoc #> TRY) THEN'
     (norm_conj_assoc2 #> TRY) THEN'
@@ -345,7 +343,7 @@ val _ =
 lemma normalize_test: "P x \<otimes> P y \<Rrightarrow> u = v \<Longrightarrow> P y \<otimes> P x \<Rrightarrow> u = v"
 proof -
   assume prem:"P x \<otimes> P y \<Rrightarrow> u = v"
-  from prem show ?thesis by(subdmq_normalize)
+  from prem show ?thesis by(subdmq_clunky_normalize)
 qed
 
 end
