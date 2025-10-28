@@ -78,6 +78,38 @@ proof -
 qed
 #+end_src
 
+*** lemma number_contracts: "N x ⇛ N x ⊗ N x"
+#+begin_src isabelle
+lemma number_contracts: "N x ⇛ N x ⊗ N x"
+proof -
+  from zero_is_number and zero_is_number have zerocase:"N 0 ⊗ N 0"..
+  { fix z
+    from succ_preserve_number and succ_preserve_number have
+      "N z ⊗ N z ⇛ N S z ⊗ N S z" by(rule factor_rule)
+    from implK and this have
+      "N z ⇛ N z ⊗ N z ⇛ N S z ⊗ N S z"..
+  }
+  have "\<And> z. N z ⇛ N z ⊗ N z ⇛ N S z ⊗ N S z" by fact
+  from this have "∀ (λ z. N z ⇛ N z ⊗ N z ⇛ N S z ⊗ N S z)"..
+  from zerocase and this show ?thesis by (rule induction_rule_bare)
+qed
+#+end_src
+*** lemma number_contracts3: "N x ⇛ N x ⊗ N x ⊗ N x"
+#+begin_src isabelle
+lemma number_contracts3: "N x ⇛ N x ⊗ N x ⊗ N x"
+proof -
+  from implI and number_contracts have "N x ⊗ N x ⇛ N x ⊗ N x ⊗ N x" by(rule factor_rule)
+  from number_contracts and this show ?thesis ..
+qed
+#+end_src
+*** lemma number_contracts_succ: "N x ⇛ N x ⊗ N S x"
+#+begin_src isabelle
+lemma number_contracts_succ: "N x ⇛ N x ⊗ N S x"
+proof -
+  from implI and succ_preserve_number have "N x ⊗ N x ⇛ N x ⊗ N S x" by(rule factor_rule)
+  from number_contracts and this show ?thesis..
+qed
+#+end_src
 *** lemma prop_24: "∀(λ x. N x ⇛ x = 0 ∨ ∃(λ y. x = S y))"
 #+begin_src isabelle
 lemma prop_24: "∀(λ x. N x ⇛ x = 0 ∨ ∃(λ y. x = S y))"
@@ -129,22 +161,52 @@ proof -
   from this and zero_is_number have "N x ⊗ N x ⇛ x + S 0 = S x"..
   from plus_zero and this have "N S x ⇛ N x ⊗ N x ⇛ x + S 0 = S x + 0" by(rule eqsub_rule'_dt)
   from succ_preserve_number and this have "N x ⇛ N x ⊗ N x ⇛ x + S 0 = S x + 0"..
-  from conj_import and this have zerocase: "N x ⊗ N x ⊗ N x ⇛ x + S 0 = S x + 0"..
+  from conj_import and this have "N x ⊗ N x ⊗ N x ⇛ x + S 0 = S x + 0"..
+  from number_contracts3 and this have zerocase:"N x ⇛ x + S 0 = S x + 0"..
 
   { fix z
-    have "x + S z = S x + z ⇛ S (x + S z) = S (S x + z)"
-      by(rule eqsub_context)
-    from plus_succ and this have "x + S z = S x + z ⇛ x + S S z = S (S x + z)"
-      by(rule eqsub_rule')
-    from plus_succ and this have "x + S z = S x + z ⇛ x + S S z = S x + S z"
-      by(rule eqsub_rule')
-  }
-  have "\<And>z. N z ⇛ N x ⇛ x + S z = S x + z ⇛ x + S S z = S x + S z" by fact
-  then have inductive: "∀(λ z. N z ⇛ N x ⇛ x + S z = S x + z ⇛ x + S S z = S x + S z)" ..
+    have "(N x ⇛ x + S z = S x + z) ⇛ N x ⇛ S (x + S z) = S (S x + z)"
+      by(rule eqsub_context_dt)
+    from implC and this have
+      "N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ S (x + S z) = S (S x + z)"..
+    from plus_succ and this have
+      "N x ⊗ N S z ⇛ N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ x + S S z = S (S x + z)"
+      by(rule eqsub_rule'_dt)
+    from conj_import and this have
+      "(N x ⊗ N S z) ⊗ N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ x + S S z = S (S x + z)"..
+    from plus_succ and this have
+      "N S x ⊗ N z ⇛ (N x ⊗ N S z) ⊗ N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ x + S S z = S x + S z"
+      by(rule eqsub_rule'_dt)
+    from conj_import and this have
+      ready:"(N S x ⊗ N z) ⊗ (N x ⊗ N S z) ⊗ N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ x + S S z = S x + S z"..
 
-  from zerocase and inductive have "N y ⇛ N x ⇛ x + S y = S x + y" by(rule induction_bare)
+    from number_contracts_succ and number_contracts_succ have
+      "N x ⊗ N z ⇛ (N x ⊗ N S x) ⊗ (N z ⊗ N S z)" by(rule factor_rule)
+    from implI and this have
+      "N x ⊗ N x ⊗ N z ⇛ N x ⊗ (N x ⊗ N S x) ⊗ (N z ⊗ N S z)" by(rule factor_rule)
+    from this have
+      ready2:"N z ⊗ (N x ⊗ N x) ⇛ (N S x ⊗ N z) ⊗ (N x ⊗ N S z) ⊗ N x"
+      by(subdmq_clunky_normalize)
+
+    from implI and number_contracts have
+      "N z ⊗ N x ⇛ N z ⊗ (N x ⊗ N x)" by (rule factor_rule)
+    from this and ready2 have
+      "N z ⊗ N x ⇛ (N S x ⊗ N z) ⊗ (N x ⊗ N S z) ⊗ N x"..
+
+    from this and ready have
+      "N z ⊗ N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ x + S S z = S x + S z"..
+    from conj_export and this have
+      "N z ⇛ N x ⇛ (N x ⇛ x + S z = S x + z) ⇛ x + S S z = S x + S z"..
+    from this and implC have
+      "N z ⇛ (N x ⇛ x + S z = S x + z) ⇛ N x ⇛ x + S S z = S x + S z"..
+  }
+  have "\<And>z. N z ⇛ (N x ⇛ x + S z = S x + z) ⇛ N x ⇛ x + S S z = S x + S z" by fact
+  then have
+    inductive:"∀(λ z. N z ⇛ (N x ⇛ x + S z = S x + z) ⇛ N x ⇛ x + S S z = S x + S z)" ..
+
+  from zerocase and inductive have "N y ⇛ N x ⇛ x + S y = S x + y" by(rule induction_rule_bare)
   from conj_import and this have "N y ⊗ N x ⇛ x + S y = S x + y"..
-  then show ?thesis by(subdmq_normalize)
+  then show ?thesis by(subdmq_clunky_normalize)
 qed
 #+end_src
 
