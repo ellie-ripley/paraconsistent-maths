@@ -175,10 +175,10 @@ fun norm_dn_strip2 (ctxt : Proof.context) : tactic =
 *)
 
 fun norm_bunch_premises (ctxt : Proof.context) : tactic =
-  REPEAT_DETERM (CHANGED (ALLGOALS (resolve_tac ctxt [@{thm conj_import}])));
+  REPEAT_DETERM (CHANGED (ALLGOALS (resolve_tac ctxt [@{thm conj_export_rule}])));
 
 fun norm_bunch_premises2 (ctxt : Proof.context) : tactic =
-  REPEAT_DETERM (CHANGED (ALLGOALS (dresolve_tac ctxt [@{thm conj_export}])));
+  REPEAT_DETERM (CHANGED (ALLGOALS (dresolve_tac ctxt [@{thm conj_import_rule}])));
 
 
 (* Normalise subdmq sentences. *)
