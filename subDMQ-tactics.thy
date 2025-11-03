@@ -30,6 +30,9 @@ sig
   val norm_dn_strip : Proof.context -> tactic;
   val norm_dn_strip2 : Proof.context -> tactic;
 
+  val norm_bunch_premises : Proof.context -> tactic;
+  val norm_bunch_premises2 : Proof.context -> tactic;
+
   val subdmq_normalize_tac : Proof.context -> tactic;
 end;
 
@@ -171,9 +174,18 @@ fun norm_dn_strip2 (ctxt : Proof.context) : tactic =
 
 *)
 
+fun norm_bunch_premises (ctxt : Proof.context) : tactic =
+  REPEAT_DETERM (CHANGED (ALLGOALS (resolve_tac ctxt [@{thm conj_import}])));
+
+fun norm_bunch_premises2 (ctxt : Proof.context) : tactic =
+  REPEAT_DETERM (CHANGED (ALLGOALS (dresolve_tac ctxt [@{thm conj_export}])));
+
+
 (* Normalise subdmq sentences. *)
 val subdmq_normalize_tac =
     (fn c => print_tac c "One more pass") THEN'
+    (norm_bunch_premises #> TRY) THEN'
+    (norm_bunch_premises2 #> TRY) THEN'
     (norm_dn_strip #> TRY) THEN'
     (norm_dn_strip2 #> TRY) THEN'
     (norm_conj_assoc #> TRY) THEN'
@@ -194,6 +206,8 @@ val _ =
         (Scan.succeed (fn ctxt => SIMPLE_METHOD (SubDMQClunkyTactics.subdmq_normalize_tac ctxt)))
         "normalise SubDMQ logic sentences")
 \<close>
+
+
 
 ML \<open>
 
@@ -344,6 +358,12 @@ lemma normalize_test: "P x \<otimes> P y \<Rrightarrow> u = v \<Longrightarrow> 
 proof -
   assume prem:"P x \<otimes> P y \<Rrightarrow> u = v"
   from prem show ?thesis by(subdmq_clunky_normalize)
+qed
+
+lemma normalize_test2: "P x \<otimes> P y \<Rrightarrow> P y \<Rrightarrow> P z \<Longrightarrow> P y \<otimes> P x \<otimes> P y \<Rrightarrow> P z"
+proof -
+  assume prem:"P x \<otimes> P y \<Rrightarrow> P y \<Rrightarrow> P z"
+  from prem show ?thesis by (subdmq_clunky_normalize)
 qed
 
 end
