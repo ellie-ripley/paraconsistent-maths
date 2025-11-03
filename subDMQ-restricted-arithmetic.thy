@@ -26,8 +26,6 @@ qed
 axiomatization
   where zero_is_number: "N 0"
     and succ_preserve_number: "N x ⇛ N S x"
-    and plus_preserve_number: "N x ⊗ N y ⇛ N (x + y)"
-    and times_preserve_number: "N x ⊗ N y ⇛ N (x × y)"
     and succ_inj: "N x ⊗ N y ⇛ S x = S y ⇛ x = y"
     and zero_succ_kaboom: "N x ⇛ 0 = S x ⇛ ⊥"
     and plus_zero: "N x ⇛ x + 0 = x"
@@ -221,9 +219,49 @@ proof -
   from conj_import and this show ?thesis..
 qed
 
+lemma plus_preserve_number: "N x ⊗ N y ⇛ N (x + y)"
+proof -
+  from plus_zero and implI have
+    "N x ⇛ N x ⇛ N (x + 0)"
+    by (rule eqsub_rule'_dt)
+  from this have
+    "N x ⊗ N x ⇛ N (x + 0)"
+    by (subdmq_clunky_normalize)
+  from number_contracts and this have
+    zerocase:"N x ⇛ N (x + 0)"..
+
+  { fix z
+    from implB and succ_preserve_number have
+      "(N x ⇛ N (x + z)) ⇛ N x ⇛ N S (x + z)"..
+    from plus_succ and this have
+      "N x ⊗ N z ⇛ (N x ⇛ N (x + z)) ⇛ N x ⇛ N (x + S z)"
+      by (rule eqsub_rule'_dt)
+    from this have
+      step1:"(N x ⊗ N x) ⊗ N z ⇛ (N x ⇛ N (x + z)) ⇛ N (x + S z)"
+      by (subdmq_clunky_normalize)
+
+    from number_contracts and implI have
+      "N x ⊗ N z ⇛ (N x ⊗ N x) ⊗ N z" by (rule factor_rule)
+    from this and step1 have
+      "N x ⊗ N z ⇛ (N x ⇛ N (x + z)) ⇛ N (x + S z)"..
+    from conj_export and this have
+      "N x ⇛ N z ⇛ (N x ⇛ N (x + z)) ⇛ N (x + S z)"..
+    from implC and this have
+      "N z ⇛ N x ⇛ (N x ⇛ N (x + z)) ⇛ N (x + S z)"..
+    from this and implC have
+      "N z ⇛ (N x ⇛ N (x + z)) ⇛ N x ⇛ N (x + S z)"..
+  }
+  have "\<And> z. (N z ⇛ (N x ⇛ N (x + z)) ⇛ N x ⇛ N (x + S z))" by fact
+  from this have "∀(λ z. N z ⇛ (N x ⇛ N (x + z)) ⇛ N x ⇛ N (x + S z))"..
+
+  from zerocase and this have "N y ⇛ N x ⇛ N (x + y)" by (rule induction_rule_bare)
+  from conj_import and this have "N y ⊗ N x ⇛ N (x + y)"..
+  from this show ?thesis by(subdmq_clunky_normalize)
+qed
+
 lemma plus_ass: "N x ⊗ N y ⊗ N z ⇛ x + y + z = (x + y) + z"
 proof -
-  from plus_zero[of y] and plus_zero have "N y ⇛ N x ⇛ (x + y) + 0 = x + y + 0"
+  from plus_zero[of y] and plus_zero have "N y ⇛ N (x + y) ⇛ (x + y) + 0 = x + y + 0"
     by(rule eqsub_rule_dt)
   from eq_sym_impl and this have zerocase:"x + y + 0 = (x + y) + 0" ..
 
