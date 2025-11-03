@@ -75,7 +75,7 @@ fun norm_conj_comm_skel (resolver: Proof.context -> thm list -> int -> tactic) (
       Thm.prems_of th
       |> gather_leaves (Context.Proof ctxt) pat frame
       |> map (Thm.cterm_of ctxt);
-    val leafpairs = upper_tri_pairs leaves |> (fn x => (@{print} x; x))
+    val leafpairs = upper_tri_pairs leaves |> (fn x => (@{print} "leafpairs "; x)) |> (fn x => (@{print} x; x))
   in
     REPEAT_DETERM (CHANGED (
       FIRSTGOAL (resolver ctxt
@@ -197,12 +197,12 @@ val _ =
 
 ML \<open>
 
-signature SUBDMQ_TACTICS =
+signature SUBDMQ_BROKEN_TACTICS =
 sig
-  val subdmq_normalize_tac : Proof.context -> tactic;
+  val subdmq_broken_normalize_tac : Proof.context -> tactic;
 end;
 
-structure SubDMQTactics: SUBDMQ_TACTICS =
+structure SubDMQTactics: SUBDMQ_BROKEN_TACTICS =
 struct
 
 fun term_Vars (t : term) : (indexname * typ) list =
@@ -323,7 +323,7 @@ fun ordered_rw_thms ctxt prf_th =
   ||> flat |>> flat;
 
 (* Normalise subdmq sentences. *)
-fun subdmq_normalize_tac ctxt =
+fun subdmq_broken_normalize_tac ctxt =
     REPEAT_DETERM (CHANGED (FIRSTGOAL
       (fn i:int => fn th =>
         let val (r_thms, e_thms) = ordered_rw_thms ctxt th |> (fn x => (@{print} x; x))
@@ -334,8 +334,8 @@ end;
 
 val _ =
   Theory.setup (
-      Method.setup \<^binding>\<open>subdmq_normalize\<close>
-        (Scan.succeed (fn ctxt => SIMPLE_METHOD (SubDMQTactics.subdmq_normalize_tac ctxt)))
+      Method.setup \<^binding>\<open>subdmq_broken_normalize\<close>
+        (Scan.succeed (fn ctxt => SIMPLE_METHOD (SubDMQTactics.subdmq_broken_normalize_tac ctxt)))
         "normalise SubDMQ logic sentences"
 )
 \<close>
