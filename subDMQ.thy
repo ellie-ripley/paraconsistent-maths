@@ -755,6 +755,18 @@ proof -
   from implB and this show "(A ⊗ B ⇛ C) ⇛ A ⇛ B ⇛ C" ..
 qed
 
+lemma conj_export_rule: "(A ⊗ B ⇛ C) ⟹ A ⇛ B ⇛ C"
+proof -
+  assume abc:"A ⊗ B ⇛ C"
+  from conj_export and abc show ?thesis..
+qed
+
+lemma conj_import_rule: "A ⇛ B ⇛ C ⟹ A ⊗ B ⇛ C"
+proof -
+  assume abc:"A ⇛ B ⇛ C"
+  from conj_import and abc show ?thesis..
+qed
+
 lemma rearrange_aLbcRde_LaebcRd: "A ⊗ (B ⊗ C) ⊗ D ⊗ E ↔ (A ⊗ E ⊗ B ⊗ C) ⊗ D"
   proof -
     from conj_bicomm and bientlI have

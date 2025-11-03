@@ -974,6 +974,23 @@ proof -
   from implB and this show "(A ⊗ B ⇛ C) ⇛ A ⇛ B ⇛ C" ..
 qed
 #+end_src
+*** lemma conj_export_rule: "(A ⊗ B ⇛ C) ⟹ A ⇛ B ⇛ C"
+#+begin_src isabelle
+lemma conj_export_rule: "(A ⊗ B ⇛ C) ⟹ A ⇛ B ⇛ C"
+proof -
+  assume abc:"A ⊗ B ⇛ C"
+  from conj_export and abc show ?thesis..
+qed
+#+end_src
+*** lemma conj_import_rule: "A ⇛ B ⇛ C ⟹ A ⊗ B ⇛ C"
+#+begin_src isabelle
+lemma conj_import_rule: "A ⇛ B ⇛ C ⟹ A ⊗ B ⇛ C"
+proof -
+  assume abc:"A ⇛ B ⇛ C"
+  from conj_import and abc show ?thesis..
+qed
+#+end_src
+
 ** Conjunction rearrangements
 *** comments
 - the lemma names use L and R as left and right delimiters to indicate association; it's ugly, but symbols all seem to be reserved

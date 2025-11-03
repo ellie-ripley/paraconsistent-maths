@@ -76,6 +76,12 @@ proof -
   from number_contracts and this show ?thesis ..
 qed
 
+lemma number_contracts4: "N x ⇛ N x ⊗ N x ⊗ N x ⊗ N x"
+proof -
+  from implI and number_contracts3 have "N x ⊗ N x ⇛ N x ⊗ N x ⊗ N x ⊗ N x" by(rule factor_rule)
+  from number_contracts and this show ?thesis..
+qed
+
 lemma number_contracts_succ: "N x ⇛ N x ⊗ N S x"
 proof -
   from implI and succ_preserve_number have "N x ⊗ N x ⇛ N x ⊗ N S x" by(rule factor_rule)
@@ -193,24 +199,16 @@ proof -
     from conj_import and this have
       "(N z ⊗ N y) ⊗ (N z ⊗ N y) ⊗ N y ⊗ N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"..
     from this have
-      step1:"(N z ⊗ N z ⊗ N z) ⊗ (N y ⊗ N y ⊗ N y) ⇛ (N y ⇛ z + y = y + z) ⇛ (N y ⇛ S z + y = y + S z)"
+      step1:"(N z ⊗ N z ⊗ N z) ⊗ (N y ⊗ N y ⊗ N y ⊗ N y) ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"
       by(subdmq_clunky_normalize)
 
-    from number_contracts3 and number_contracts3 have
-      "N z ⊗ N y ⇛ (N z ⊗ N z ⊗ N z) ⊗ (N y ⊗ N y ⊗ N y)"
+    from number_contracts3 and number_contracts4 have
+      "N z ⊗ N y ⇛ (N z ⊗ N z ⊗ N z) ⊗ (N y ⊗ N y ⊗ N y ⊗ N y)"
       by(rule factor_rule)
     from this and step1 have
-      "N z ⊗ N y ⇛ (N y ⇛ z + y = y + z) ⇛ (N y ⇛ S z + y = y + S z)"..
+      "N z ⊗ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"..
     from conj_export and this have
-      "N z ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"..
-    from implC and this have
-      "N z ⇛ N y ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"
-      by(rule impl_link_121)
-    from this and conj_import have
-      "N z ⇛ N y ⊗ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"..
-    from this and number_contracts have
-      "N z ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"
-      by(rule impl_link_212)
+      "N z ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"..
     from this and implC have
       "N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"..
   }
