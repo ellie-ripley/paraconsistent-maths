@@ -156,7 +156,6 @@ proof -
   from plus_zero and plus_succ have "N x ⇛ N x ⊗ N 0 ⇛ x + S 0 = S x" by(rule eqsub_rule_dt)
   from conj_import and this have "N x ⊗ N x ⊗ N 0 ⇛ x + S 0 = S x"..
   from this have "N 0 ⊗ N x ⊗ N x ⇛ x + S 0 = S x" by (subdmq_clunky_normalize)
-  (* TODO: this works with clunky, but not without---why? *)
   from conj_export and this have "N 0 ⇛ N x ⊗ N x ⇛ x + S 0 = S x"..
   from this and zero_is_number have "N x ⊗ N x ⇛ x + S 0 = S x"..
   from plus_zero and this have "N S x ⇛ N x ⊗ N x ⇛ x + S 0 = S x + 0" by(rule eqsub_rule'_dt)
@@ -210,35 +209,66 @@ proof -
 qed
 #+end_src
 
-*** lemma plus_comm: "x + y = y + x"
+*** lemma plus_comm: "Nx ⊗ N y ⇛ x + y = y + x"
 #+begin_src isabelle
-lemma plus_comm: "x + y = y + x"
+lemma plus_comm: "N x ⊗ N y ⇛ x + y = y + x"
 proof -
-  from plus_zero and plus_zero' have zerocase: "0 + y = y + 0"
-    by(rule eqsub_rule')
+  from plus_zero and plus_zero' have "N y ⇛ N y ⇛ 0 + y = y + 0"
+    by(rule eqsub_rule'_dt)
+  from conj_import and this have "N y ⊗ N y ⇛ 0 + y = y + 0"..
+  from number_contracts and this have zerocase:"N y ⇛ 0 + y = y + 0"..
   { fix z
-    have "z + y = y + z ⇛ S (z + y) = S (y + z)"
-      by(rule eqsub_context)
-    from plus_succ and this have "z + y = y + z ⇛ S (z + y) = y + S z"
-      by(rule eqsub_rule')
-    from plus_succ and this have "z + y = y + z ⇛ z + S y = y + S z"
-      by(rule eqsub_rule')
-    from plus_comm_aux and this have "z + y = y + z ⇛ S z + y = y + S z"
-      by(rule eqsub_rule)
-  }
-  have "\<And> z. z + y = y + z ⇛ S z + y = y + S z" by fact
-  then have inductive:"∀(λ z. z + y = y + z ⇛ S z + y = y + S z)" ..
+    have "(N y ⇛ z + y = y + z) ⇛ N y ⇛ S (z + y) = S (y + z)"
+      by(rule eqsub_context_dt)
+    from plus_succ and this have "N y ⊗ N z ⇛ (N y ⇛ z + y = y + z) ⇛ (N y ⇛ S (z + y) = y + S z)"
+      by(rule eqsub_rule'_dt)
+    from plus_succ and this have "N z ⊗ N y ⇛ N y ⊗ N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ z + S y = y + S z"
+      by(rule eqsub_rule'_dt)
+    from conj_import and this have
+      "(N z ⊗ N y) ⊗ N y ⊗ N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ z + S y = y + S z"..
+    from plus_comm_aux and this have
+      "N z ⊗ N y ⇛ (N z ⊗ N y) ⊗ N y ⊗ N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"
+      by(rule eqsub_rule_dt)
+    from conj_import and this have
+      "(N z ⊗ N y) ⊗ (N z ⊗ N y) ⊗ N y ⊗ N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"..
+    from this have
+      step1:"(N z ⊗ N z ⊗ N z) ⊗ (N y ⊗ N y ⊗ N y) ⇛ (N y ⇛ z + y = y + z) ⇛ (N y ⇛ S z + y = y + S z)"
+      by(subdmq_clunky_normalize)
 
-  from zerocase and inductive show ?thesis by(rule induction_rule_bare)
+    from number_contracts3 and number_contracts3 have
+      "N z ⊗ N y ⇛ (N z ⊗ N z ⊗ N z) ⊗ (N y ⊗ N y ⊗ N y)"
+      by(rule factor_rule)
+    from this and step1 have
+      "N z ⊗ N y ⇛ (N y ⇛ z + y = y + z) ⇛ (N y ⇛ S z + y = y + S z)"..
+    from conj_export and this have
+      "N z ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"..
+    from implC and this have
+      "N z ⇛ N y ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"
+      by(rule impl_link_121)
+    from this and conj_import have
+      "N z ⇛ N y ⊗ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"..
+    from this and number_contracts have
+      "N z ⇛ N y ⇛ (N y ⇛ z + y = y + z) ⇛ S z + y = y + S z"
+      by(rule impl_link_212)
+    from this and implC have
+      "N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z"..
+  }
+  have "\<And> z. N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z" by fact
+  then have inductive:"∀(λ z. N z ⇛ (N y ⇛ z + y = y + z) ⇛ N y ⇛ S z + y = y + S z)" ..
+
+  from zerocase and inductive have
+    "N x ⇛ N y ⇛ x + y = y + x"
+    by(rule induction_rule_bare)
+  from conj_import and this show ?thesis..
 qed
 #+end_src
 
-*** lemma plus_ass: "x + y + z = (x + y) + z"
+*** lemma plus_ass: "N x ⊗ N y ⊗ N x ⇛ x + y + z = (x + y) + z"
 #+begin_src isabelle
-lemma plus_ass: "x + y + z = (x + y) + z"
+lemma plus_ass: "N x ⊗ N y ⊗ N z ⇛ x + y + z = (x + y) + z"
 proof -
-  from plus_zero[of y] and plus_zero have "(x + y) + 0 = x + y + 0"
-    by(rule eqsub_rule)
+  from plus_zero[of y] and plus_zero have "N y ⇛ N x ⇛ (x + y) + 0 = x + y + 0"
+    by(rule eqsub_rule_dt)
   from eq_sym_impl and this have zerocase:"x + y + 0 = (x + y) + 0" ..
 
   { fix z
