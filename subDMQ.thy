@@ -1510,6 +1510,20 @@ proof -
   from disj_factor and this show ?thesis ..
 qed
 
+lemma chain_across_conj_left_rule: "A ⇛ B ⟹ B ⊗ C ⇛ D ⟹ A ⊗ C ⇛ D"
+proof -
+  assume ab:"A ⇛ B" and bcd:"B ⊗ C ⇛ D"
+  from ab have "A ⊗ C ⇛ B ⊗ C" by(rule conj_monotone_left_rule)
+  from this and bcd show ?thesis..
+qed
+
+lemma chain_across_conj_right_rule: "A ⇛ B ⟹ C ⊗ B ⇛ D ⟹ C ⊗ A ⇛ D"
+proof -
+  assume ab:"A ⇛ B" and cbd:"C ⊗ B ⇛ D"
+  from ab have "C ⊗ A ⇛ C ⊗ B" by(rule conj_monotone_right_rule)
+  from this and cbd show ?thesis..
+qed
+
 lemma reductio: "(A ⇛ ¬A) ⇛ ¬A"
   proof -
     from impl_disj_left and implI have

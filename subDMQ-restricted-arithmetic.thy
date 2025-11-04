@@ -263,23 +263,68 @@ lemma plus_ass: "N x ⊗ N y ⊗ N z ⇛ x + y + z = (x + y) + z"
 proof -
   from plus_zero[of y] and plus_zero have "N y ⇛ N (x + y) ⇛ (x + y) + 0 = x + y + 0"
     by(rule eqsub_rule_dt)
-  from eq_sym_impl and this have zerocase:"x + y + 0 = (x + y) + 0" ..
+  from eq_sym_impl and this have "N y ⇛ N (x + y) ⇛ x + y + 0 = (x + y) + 0"
+    by(rule impl_link_121)
+  from this and plus_preserve_number have
+    "N y ⇛ N x ⊗ N y ⇛ x + y + 0 = (x + y) + 0"
+    by(rule impl_link_212)
+  from this have
+    "N y ⊗ N y ⇛ N x ⇛ x + y + 0 = (x + y) + 0"
+    by(subdmq_clunky_normalize)
+  from number_contracts and this have
+    "N y ⇛ N x ⇛ x + y + 0 = (x + y) + 0"..
+  from this have
+    zerocase:"N x ⊗ N y ⇛ x + y + 0 = (x + y) + 0"
+    by(subdmq_clunky_normalize)
 
   { fix z
-    have "x + y + z = (x + y) + z ⇛ S (x + y + z) = S((x + y) + z)"
-      by(rule eqsub_context)
-    then have "x + y + z = (x + y) + z ⇛ x + y + S z = (x + y) + S z"
-      apply -
-      apply (rule eqsub_rule'[OF plus_succ])
-      apply (rule eqsub_rule'[OF plus_succ])
-      apply (rule eqsub_rule'[OF plus_succ])
-      apply assumption
-      done
+    let ?ih="N x ⊗ N y ⇛ x + y + z = (x + y) + z"
+    have "?ih ⇛ N x ⊗ N y ⇛ S (x + y + z) = S((x + y) + z)"
+      by(rule eqsub_context_dt)
+    from plus_succ and this have
+      "N x ⊗ N (y + z) ⇛ ?ih ⇛ N x ⊗ N y ⇛ x + S (y + z) = S((x + y) + z)"
+      by(rule eqsub_rule'_dt)
+    from plus_succ and this have
+      "N y ⊗ N z ⇛ N x ⊗ N (y + z) ⇛ ?ih ⇛ N x ⊗ N y ⇛ x + y + S z = S((x + y) + z)"
+      by(rule eqsub_rule'_dt)
+    from plus_succ and this have
+      "N (x + y) ⊗ N z ⇛ N y ⊗ N z ⇛ N x ⊗ N (y + z) ⇛ ?ih ⇛ N x ⊗ N y ⇛ x + y + S z = (x + y) + S z"
+      by(rule eqsub_rule'_dt)
+    from this have
+      "N (x + y) ⇛ N (y + z) ⇛ (N z ⊗ N z) ⊗ (N y ⊗ N y) ⊗ N x ⊗ N x ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(subdmq_clunky_normalize)
+    from plus_preserve_number and this have
+      "N x ⊗ N y ⇛ N (y + z) ⇛ (N z ⊗ N z) ⊗ (N y ⊗ N y) ⊗ N x ⊗ N x ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"..
+    from this and plus_preserve_number have
+      "N x ⊗ N y ⇛ N y ⊗ N z ⇛ (N z ⊗ N z) ⊗ (N y ⊗ N y) ⊗ N x ⊗ N x ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(rule impl_link_212)
+    from this have
+      "(N x ⊗ N x ⊗ N x) ⊗ (N y ⊗ N y ⊗ N y ⊗ N y) ⊗ (N z ⊗ N z ⊗ N z) ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(subdmq_clunky_normalize)
+    from number_contracts3 and this have
+      "N x ⊗ (N y ⊗ N y ⊗ N y ⊗ N y) ⊗ (N z ⊗ N z ⊗ N z) ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(rule chain_across_conj_left_rule)
+    from this have
+      "(N y ⊗ N y ⊗ N y ⊗ N y) ⊗ (N z ⊗ N z ⊗ N z) ⇛ N x ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(subdmq_clunky_normalize)
+    from number_contracts4 and this have
+      "N y ⊗ (N z ⊗ N z ⊗ N z) ⇛ N x ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(rule chain_across_conj_left_rule)
+    from number_contracts3 and this have
+      "N y ⊗ N z ⇛ N x ⇛ ?ih ⇛ x + y + S z = (x + y) + S z"
+      by(rule chain_across_conj_right_rule)
+    from this have
+      "N z ⇛ ?ih ⇛ N x ⊗ N y ⇛ x + y + S z = (x + y) + S z"
+      by(subdmq_clunky_normalize)
   }
-  have "\<And> z. x + y + z = (x + y) + z ⇛ x + y + S z = (x + y) + S z" by fact
-  then have inductive:"∀(λ z. x + y + z = (x + y) + z ⇛ x + y + S z = (x + y) + S z)" ..
+  have "\<And> z. N z ⇛ (N x ⊗ N y ⇛ x + y + z = (x + y) + z) ⇛ N x ⊗ N y ⇛ x + y + S z = (x + y) + S z" by fact
+  then have inductive:"∀(λ z. N z ⇛ (N x ⊗ N y ⇛ x + y + z = (x + y) + z) ⇛ N x ⊗ N y ⇛ x + y + S z = (x + y) + S z)" ..
 
-  from zerocase and inductive show ?thesis by (rule induction_rule_bare)
+  from zerocase and inductive have
+    "N z ⇛ N x ⊗ N y ⇛ x + y + z = (x + y) + z"
+    by (rule induction_rule_bare)
+  from this show ?thesis
+    by(subdmq_clunky_normalize)
 qed
 
 lemma plus_cancel: "x + z = y + z ⇛ x = y"
